@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial AI Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        #chat-container::-webkit-scrollbar { width: 4px; }
+        #chat-container::-webkit-scrollbar-thumb { background-color: #9CA3AF; border-radius: 20px; }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col items-center justify-center h-screen">
+
+    <div class="w-full max-w-2xl h-full md:h-5/6 flex flex-col bg-white shadow-2xl rounded-lg">
+        <div class="p-4 border-b bg-gray-800 text-white rounded-t-lg">
+            <h1 class="text-2xl font-bold text-center">Financial AI Assistant</h1>
+            <p class="text-sm text-center text-gray-300">Ask about company financials, SEC filings, and stock price predictions.</p>
+        </div>
+
+        <div id="chat-container" class="flex-1 p-6 overflow-y-auto">
+            <div class="flex justify-start mb-4">
+                <div class="bg-gray-200 text-gray-800 p-3 rounded-lg max-w-md">
+                    <p>Hello! How can I assist you? You can ask things like "What was the revenue for AAPL in 2023?", "Summarize the risks for NVDA from their last 10-K", or "Predict the next price for MSFT".</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 border-t bg-gray-50 rounded-b-lg">
+            <form id="chat-form" class="flex items-center space-x-3">
+                <input type="text" id="user-input" placeholder="Ask a financial question..." class="flex-1 p-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                <button type="submit" class="bg-gray-800 text-white p-3 rounded-full hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition duration-300 transform hover:scale-105">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const chatContainer = document.getElementById('chat-container');
+
+        // --- CONFIGURATION ---
+        // For local development, this should match your uvicorn port.
+        // For production, change this URL to your deployed Google Cloud Run or AWS endpoint.
+        const apiUrl = 'http://127.0.0.1:8080/chat'; // OPEN IN http://127.0.0.1:8080/
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const question = userInput.value.trim();
+            if (!question) return;
+
+            // Display user message
+            addMessage(question, 'user');
+            userInput.value = '';
+
+            // Show typing indicator
+            const typingIndicator = addMessage('...', 'bot', true);
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: question })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Remove typing indicator and add bot response
+                typingIndicator.remove();
+                addMessage(data.answer, 'bot');
+
+            } catch (error) {
+                console.error('Error fetching from API:', error);
+                typingIndicator.remove();
+                addMessage('Sorry, I am having trouble connecting to the server. Please check the console for details.', 'bot');
+            }
+        });
+
+        function addMessage(text, sender, isTyping = false) {
+            const messageWrapper = document.createElement('div');
+            messageWrapper.className = `flex mb-4 ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+
+            const messageBubble = document.createElement('div');
+            // MODIFIED: Changed user bubble color to match the header
+            messageBubble.className = `p-3 rounded-lg max-w-md ${sender === 'user' ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-800'}`;
+
+            // This renders the response as HTML, which allows for markdown formatting like lists.
+            // A production app would need to sanitize this to prevent XSS attacks.
+            messageBubble.innerHTML = text.replace(/\n/g, '<br>');
+
+
+            if (isTyping) {
+                messageBubble.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
+                messageWrapper.id = "typing-indicator";
+            }
+
+            messageWrapper.appendChild(messageBubble);
+            chatContainer.appendChild(messageWrapper);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return messageWrapper;
+        }
+    </script>
+    <style>
+        .typing-indicator span {
+            height: 8px;
+            width: 8px;
+            background-color: #9E9E9E;
+            border-radius: 50%;
+            display: inline-block;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .typing-indicator span:nth-of-type(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-of-type(2) { animation-delay: -0.16s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
+    </style>
+</body>
+</html>
