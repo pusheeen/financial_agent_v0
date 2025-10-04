@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Financial Agent — Preview</title>
+    <meta name="description" content="Minimal front-end preview for financial_agent_v0" />
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container">
+        <div class="brand">Financial Agent</div>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="hero">
+        <h1>Front-end Preview</h1>
+        <p>This is a lightweight static preview scaffold. You can replace this with your actual UI later.</p>
+      </section>
+
+      <section class="card">
+        <h2>Quick calculator</h2>
+        <p>Estimate your monthly savings:</p>
+        <form id="calcForm" class="form-grid">
+          <label for="monthlyIncome">Monthly income</label>
+          <input id="monthlyIncome" name="monthlyIncome" type="number" inputmode="decimal" placeholder="4000" min="0" step="0.01" />
+
+          <label for="monthlyExpenses">Monthly expenses</label>
+          <input id="monthlyExpenses" name="monthlyExpenses" type="number" inputmode="decimal" placeholder="3000" min="0" step="0.01" />
+
+          <button id="calculateButton" type="submit" class="primary">Calculate</button>
+        </form>
+        <div id="result" class="result" aria-live="polite">
+          <p id="resultText">Enter values and press Calculate.</p>
+        </div>
+      </section>
+
+      <section class="card muted">
+        <h3>Next steps</h3>
+        <ul>
+          <li>Replace this scaffold with your real components.</li>
+          <li>Hook up API endpoints when they are available.</li>
+          <li>Add your build tool (Vite, Next.js, etc.).</li>
+        </ul>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <small>© <span id="year"></span> Financial Agent. All rights reserved.</small>
+      </div>
+    </footer>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
