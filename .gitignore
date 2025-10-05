@@ -1,0 +1,7 @@
+.env
+/data/
+/app/models/saved_models/
+data/
+app/models/saved_models/
+__pycache__/
+*.pyc
