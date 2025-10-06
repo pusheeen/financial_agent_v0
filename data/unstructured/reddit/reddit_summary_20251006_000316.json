@@ -1,0 +1,144 @@
+{
+  "VST": {
+    "total_posts": 1,
+    "bullish_posts": 1,
+    "bearish_posts": 0,
+    "neutral_posts": 0,
+    "avg_sentiment": 0,
+    "subreddits": [
+      "stocks"
+    ]
+  },
+  "IREN": {
+    "total_posts": 6,
+    "bullish_posts": 4,
+    "bearish_posts": 1,
+    "neutral_posts": 1,
+    "avg_sentiment": 0,
+    "subreddits": [
+      "ValueInvesting",
+      "stocks",
+      "wallstreetbets"
+    ]
+  },
+  "CIFR": {
+    "total_posts": 1,
+    "bullish_posts": 1,
+    "bearish_posts": 0,
+    "neutral_posts": 0,
+    "avg_sentiment": 0,
+    "subreddits": [
+      "stocks"
+    ]
+  },
+  "RR": {
+    "total_posts": 4,
+    "bullish_posts": 3,
+    "bearish_posts": 0,
+    "neutral_posts": 1,
+    "avg_sentiment": 0,
+    "subreddits": [
+      "ValueInvesting",
+      "stocks",
+      "wallstreetbets"
+    ]
+  },
+  "NVDA": {
+    "total_posts": 12,
+    "bullish_posts": 11,
+    "bearish_posts": 1,
+    "neutral_posts": 0,
+    "avg_sentiment": 0,
+    "subreddits": [
+      "ValueInvesting",
+      "stocks",
+      "investing",
+      "wallstreetbets"
+    ]
+  },
+  "OKLO": {
+    "total_posts": 9,
+    "bullish_posts": 7,
+    "bearish_posts": 0,
+    "neutral_posts": 2,
+    "avg_sentiment": 0,
+    "subreddits": [
+      "UraniumSqueeze",
+      "investing",
+      "ValueInvesting"
+    ]
+  },
+  "MU": {
+    "total_posts": 2,
+    "bullish_posts": 2,
+    "bearish_posts": 0,
+    "neutral_posts": 0,
+    "avg_sentiment": 0,
+    "subreddits": [
+      "wallstreetbets",
+      "ValueInvesting"
+    ]
+  },
+  "TSM": {
+    "total_posts": 1,
+    "bullish_posts": 1,
+    "bearish_posts": 0,
+    "neutral_posts": 0,
+    "avg_sentiment": 0,
+    "subreddits": [
+      "ValueInvesting"
+    ]
+  },
+  "AVGO": {
+    "total_posts": 1,
+    "bullish_posts": 1,
+    "bearish_posts": 0,
+    "neutral_posts": 0,
+    "avg_sentiment": 0,
+    "subreddits": [
+      "ValueInvesting"
+    ]
+  },
+  "QS": {
+    "total_posts": 2,
+    "bullish_posts": 1,
+    "bearish_posts": 1,
+    "neutral_posts": 0,
+    "avg_sentiment": 0,
+    "subreddits": [
+      "cryptomining",
+      "ValueInvesting"
+    ]
+  },
+  "SMR": {
+    "total_posts": 7,
+    "bullish_posts": 5,
+    "bearish_posts": 1,
+    "neutral_posts": 1,
+    "avg_sentiment": 0,
+    "subreddits": [
+      "renewableenergy",
+      "UraniumSqueeze"
+    ]
+  },
+  "NXE": {
+    "total_posts": 12,
+    "bullish_posts": 10,
+    "bearish_posts": 0,
+    "neutral_posts": 2,
+    "avg_sentiment": 0,
+    "subreddits": [
+      "UraniumSqueeze"
+    ]
+  },
+  "CCJ": {
+    "total_posts": 4,
+    "bullish_posts": 3,
+    "bearish_posts": 0,
+    "neutral_posts": 1,
+    "avg_sentiment": 0,
+    "subreddits": [
+      "UraniumSqueeze"
+    ]
+  }
+}

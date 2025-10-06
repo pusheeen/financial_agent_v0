@@ -23,11 +23,12 @@ This natural language interface activates tools in the backend agent system to p
 
 ### Core Capabilities
 
-The system provides three main capabilities via its agent tools:
+The system provides four main capabilities via its agent tools:
 
 1. **Corporate Financial Analysis**: Query company fundamentals, financials, and key metrics from structured data
 2. **SEC Filing Intelligence**: Perform semantic search and summarization on the full text of annual 10-K reports to extract qualitative insights
-3. **Predictive Analytics**: Generate next-day price predictions for individual stocks using pre-trained autoregressive models
+3. **Social Media Sentiment Analysis**: Collect and analyze Reddit discussions from finance-related subreddits to gauge market sentiment
+4. **Predictive Analytics**: Generate next-day price predictions for individual stocks using pre-trained autoregressive models
 
 ## Technical Architecture
 
@@ -49,6 +50,7 @@ The system employs a Root/Sub-Agent pattern:
 - **Sub-Agents**: Function as "specialist analysts" with specific tools:
   - **Graph QA Agent**: Generates Cypher queries for statistical questions about company financials
   - **Document RAG Agent**: Performs semantic search through SEC filings
+  - **Social Sentiment Agent**: Analyzes Reddit discussions for market sentiment and community insights
   - **Stock Predictor Agent**: Runs ML models for next-day price predictions
 
 ### Data Flow
@@ -64,10 +66,21 @@ The system employs a Root/Sub-Agent pattern:
 ### Data Ingestion
 - Historical data pulled using `yfinance` library
 - SEC 10-K reports fetched from EDGAR database in complex iXBRL format
+- Reddit discussions collected via two complementary approaches:
+  - **RSS Scraping**: Public feeds from finance subreddits (no authentication required)
+  - **API Scraping**: Full Reddit API access for richer data including upvotes, comments, and engagement metrics
+
+### Social Media Sentiment Processing
+- **Target Communities**: 11 finance-focused subreddits (stocks, investing, wallstreetbets, UraniumSqueeze, etc.)
+- **Ticker Detection**: Regex pattern matching for 18 target stock symbols
+- **Sentiment Analysis**: VADER sentiment analyzer classifies posts as bullish/bearish/neutral
+- **Topic Extraction**: Automated categorization (earnings, AI, crypto, uranium, renewables, etc.)
+- **Data Output**: Structured JSON with sentiment scores, engagement metrics, and topic tags
 
 ### Handling "Noise"
 - SEC filings contain extensive boilerplate legal jargon
 - RAG pipeline uses `UnstructuredHTMLLoader` to extract core textual content
+- Reddit data filtered to target tickers only, reducing noise from general market discussions
 
 ### Prediction Modeling
 - Stock prediction demonstrates ML integration (not financial advice)
@@ -100,9 +113,12 @@ financial-assistant/
 │   │   ├── financials/
 │   │   └── prices/
 │   └── unstructured/
-│       └── 10k/
+│       ├── 10k/
+│       └── reddit/
 ├── fetch_data.py
 ├── populate_graph.py
+├── scrape_reddit.py
+├── scrape_reddit_rss.py
 ├── companies.csv
 ├── .env
 ├── .env-example
@@ -141,7 +157,24 @@ NEO4J_URI="neo4j+s://your-instance.databases.neo4j.io"
 NEO4J_USERNAME="neo4j"
 NEO4J_PASSWORD="your-password"
 SEC_USER_AGENT="Your Name your.email@provider.com"
+
+# Optional: Reddit API credentials for enhanced social sentiment analysis
+REDDIT_CLIENT_ID="your-reddit-client-id"
+REDDIT_CLIENT_SECRET="your-reddit-client-secret"
+REDDIT_USER_AGENT="YourApp/1.0 by u/yourusername"
 ```
+
+### Reddit API Setup (Optional)
+
+For enhanced social media analysis, you can set up Reddit API credentials:
+
+1. Go to [Reddit Apps](https://www.reddit.com/prefs/apps)
+2. Click "Create App" or "Create Another App"
+3. Choose "script" as the application type
+4. Note down your `client_id` and `client_secret`
+5. Set the environment variables above
+
+**Note**: The RSS scraper (`scrape_reddit_rss.py`) works without credentials, while the API scraper (`scrape_reddit.py`) provides richer data but requires authentication.
 
 3. Run the complete data pipeline:
 
@@ -155,7 +188,11 @@ python3 fetch_data.py
 # Step 3: Populate the Neo4j database (Graph + Embeddings)
 python3 app/graph_db/2_populate_graph.py
 
-# Step 4: Train the predictive models (one for each stock)
+# Step 4: Collect social media sentiment data
+python3 scrape_reddit_rss.py    # No credentials required (RSS feeds)
+python3 scrape_reddit.py        # Requires Reddit API credentials
+
+# Step 5: Train the predictive models (one for each stock)
 python3 app/models/train_predictor.py
 ```
 
@@ -178,6 +215,11 @@ uvicorn app.main:app --reload --port 8080
 - "What did Google say about their AI strategy in the last 10-K?"
 - "Summarize Amazon's management outlook from their 2024 filing."
 - "What are the common concerns about supply chain disruptions?"
+
+### Social Media Sentiment Analysis
+- "What is the Reddit sentiment for NVDA this week?"
+- "Show me the most discussed uranium stocks on social media."
+- "What are retail investors saying about IREN?"
 
 ### Predictive Analytics (Prediction Tool)
 - "Predict the next closing price for AAPL."
