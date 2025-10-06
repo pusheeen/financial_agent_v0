@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 import time
 from typing import List, Dict, Any
-import pandas as pd
+# import pandas as pd  # Removed due to NumPy compatibility issues
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 # --- Configuration ---
@@ -40,11 +40,11 @@ SINCE_DATE = datetime.now() - timedelta(days=DAYS_BACK)
 class RedditScraper:
     def __init__(self):
         """Initialize Reddit API client and sentiment analyzer."""
-        # Reddit API credentials (you'll need to set these)
+        # Reddit API credentials - use environment variables or fallback to defaults
         self.reddit = praw.Reddit(
-            client_id=os.getenv('REDDIT_CLIENT_ID'),
-            client_secret=os.getenv('REDDIT_CLIENT_SECRET'),
-            user_agent=os.getenv('REDDIT_USER_AGENT', 'FinancialAgent/1.0')
+            client_id=os.getenv('REDDIT_CLIENT_ID', "9RrzkLg9kN06g-kpti2ncw"),
+            client_secret=os.getenv('REDDIT_CLIENT_SECRET', "OH0pyFbl8T2ykN0IeAC1m5uNUu287A"),
+            user_agent=os.getenv('REDDIT_USER_AGENT', "FinancialAgent/1.0 by u/Feeling-Berry5335")
         )
         
         self.sentiment_analyzer = SentimentIntensityAnalyzer()
@@ -252,17 +252,17 @@ def main():
     print(f"Subreddits: {', '.join(SUBREDDITS)}")
     print(f"Time range: Past {DAYS_BACK} days")
     
-    # Check for Reddit API credentials
+    # Check for Reddit API credentials (will use defaults if not set)
     if not os.getenv('REDDIT_CLIENT_ID'):
-        print("Error: REDDIT_CLIENT_ID environment variable not set")
-        print("Please set up Reddit API credentials:")
+        print("Warning: Using default Reddit API credentials")
+        print("For production use, set your own credentials:")
         print("1. Go to https://www.reddit.com/prefs/apps")
         print("2. Create a new app (script type)")
         print("3. Set environment variables:")
         print("   export REDDIT_CLIENT_ID='your_client_id'")
         print("   export REDDIT_CLIENT_SECRET='your_client_secret'")
-        print("   export REDDIT_USER_AGENT='FinancialAgent/1.0'")
-        return
+        print("   export REDDIT_USER_AGENT='YourApp/1.0 by u/yourusername'")
+        print("Proceeding with default credentials...\n")
     
     scraper = RedditScraper()
     posts_data = scraper.scrape_all_subreddits()
