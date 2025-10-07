@@ -80,18 +80,32 @@ class Neo4jForADK:
         neo4j_password = os.getenv("NEO4J_PASSWORD")
         neo4j_database = os.getenv("NEO4J_DATABASE") or os.getenv("NEO4J_USERNAME") or "neo4j"
         self.database_name = neo4j_database
-        self._driver =  GraphDatabase.driver(
-            neo4j_uri,
-            auth=(neo4j_username, neo4j_password)
-        )
+        
+        # Initialize driver only if Neo4j URI is provided
+        if neo4j_uri:
+            try:
+                self._driver = GraphDatabase.driver(
+                    neo4j_uri,
+                    auth=(neo4j_username, neo4j_password)
+                )
+            except Exception as e:
+                print(f"Warning: Failed to connect to Neo4j: {e}")
+                self._driver = None
+        else:
+            print("Warning: NEO4J_URI not provided, Neo4j functionality will be disabled")
+            self._driver = None
     
     def get_driver(self):
         return self._driver
     
     def close(self):
-        return self._driver.close()
+        if self._driver:
+            return self._driver.close()
     
     def send_query(self, cypher_query, parameters=None) -> Dict[str, Any]:
+        if not self._driver:
+            return tool_error("Neo4j driver not available. Please check your NEO4J_URI configuration.")
+        
         session = self._driver.session()
         try:
             result = session.run(

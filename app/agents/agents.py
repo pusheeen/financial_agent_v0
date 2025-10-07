@@ -209,26 +209,54 @@ def query_reddit_sentiment(question: str) -> dict:
     Analyzes social media sentiment, discussions, and trends.
     """
     try:
+        # Extract ticker from question (look for common ticker patterns)
+        import re
+        # Look for ticker patterns like "AVGO", "NVDA", etc. but exclude common words
+        common_words = {'WHAT', 'THE', 'FOR', 'AND', 'ARE', 'IS', 'WAS', 'WERE', 'THIS', 'THAT', 'WITH', 'FROM', 'ABOUT', 'SENTIMENT', 'REDDIT'}
+        ticker_matches = re.findall(r'\b([A-Z]{2,5})\b', question.upper())
+        ticker = None
+        for match in ticker_matches:
+            if match not in common_words:
+                ticker = match
+                break
+        
         # Generate Cypher query for Reddit sentiment analysis
-        cypher_query = f"""
-        MATCH (p:RedditPost)-[:MENTIONS]->(c:Company)
-        WHERE c.ticker IN ['NVDA', 'MU', 'AVGO', 'TSM', 'VRT', 'SMCI', 'INOD', 'RR', 'IREN', 'CIFR', 'RIOT', 'OKLO', 'SMR', 'CCJ', 'VST', 'NXE', 'EOSE', 'QS']
-        RETURN c.ticker as ticker, 
-               p.sentiment as sentiment,
-               p.compound_score as compound_score,
-               p.score as post_score,
-               p.subreddit as subreddit,
-               p.title as title,
-               p.created_utc as created_utc,
-               p.topics as topics
-        ORDER BY p.created_utc DESC
-        LIMIT 50
-        """
+        if ticker:
+            cypher_query = f"""
+            MATCH (p:RedditPost)-[:MENTIONS]->(c:Company)
+            WHERE c.ticker = '{ticker}'
+            RETURN c.ticker as ticker, 
+                   p.sentiment as sentiment,
+                   p.compound_score as compound_score,
+                   p.score as post_score,
+                   p.subreddit as subreddit,
+                   p.title as title,
+                   p.created_utc as created_utc,
+                   p.topics as topics
+            ORDER BY p.created_utc DESC
+            LIMIT 50
+            """
+        else:
+            # If no ticker found, return all available tickers with sentiment
+            cypher_query = """
+            MATCH (p:RedditPost)-[:MENTIONS]->(c:Company)
+            RETURN c.ticker as ticker, 
+                   p.sentiment as sentiment,
+                   p.compound_score as compound_score,
+                   p.score as post_score,
+                   p.subreddit as subreddit,
+                   p.title as title,
+                   p.created_utc as created_utc,
+                   p.topics as topics
+            ORDER BY p.created_utc DESC
+            LIMIT 50
+            """
         
         result = graphdb.send_query(cypher_query)
         return {
             "query_result": result.get("query_result", []),
-            "cypher_query": cypher_query
+            "cypher_query": cypher_query,
+            "searched_ticker": ticker
         }
     except Exception as e:
         return {"error": f"Reddit sentiment query failed: {str(e)}"}
@@ -283,10 +311,12 @@ root_agent = Agent(
       * The agent will dynamically discover available tickers from trained models
     
     - Use 'RedditSentiment_Agent' for:
-      * Reddit sentiment analysis and social media discussions
+      * ANY question mentioning "Reddit sentiment" or "Reddit"
+      * Social media discussions about companies
       * Community sentiment around specific companies
       * Popular topics and trends on Reddit
       * Social media buzz and engagement metrics
+      * Questions like "What is the Reddit sentiment for [TICKER]?"
     
     IMPORTANT NOTES:
     - Available companies: 18+ companies including semiconductor, energy, and tech companies
