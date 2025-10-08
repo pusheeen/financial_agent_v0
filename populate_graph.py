@@ -56,7 +56,7 @@ def ingest_structured_data():
     then creates Company and Financials nodes in Neo4j.
     """
     print("Ingesting structured company and financial data...")
-    companies_df = pd.read_csv('./companies.csv')
+    companies_df = pd.read_csv('./data/companies.csv')
     if ALLOWED_TICKERS:
         companies_df = companies_df[companies_df['ticker'].str.upper().isin(ALLOWED_TICKERS)]
     company_records = companies_df.to_dict('records')
@@ -242,6 +242,185 @@ def ingest_unstructured_data():
     except Exception as e:
         print(f"Error creating vector index: {e}")
 
+
+def ingest_reddit_posts(posts_data):
+    """Ingest Reddit posts into Neo4j graph."""
+    print("Ingesting Reddit posts into Neo4j...")
+
+    with driver.session() as session:
+        for post in tqdm(posts_data, desc="Ingesting Reddit Posts"):
+            # Create or update Reddit post
+            create_post_query = """
+            MERGE (p:RedditPost {id: $post_id})
+            SET p.title = $title,
+                p.selftext = $selftext,
+                p.score = $score,
+                p.upvote_ratio = $upvote_ratio,
+                p.num_comments = $num_comments,
+                p.created_utc = $created_utc,
+                p.subreddit = $subreddit,
+                p.url = $url,
+                p.sentiment = $sentiment,
+                p.compound_score = $compound_score,
+                p.positive_score = $positive_score,
+                p.negative_score = $negative_score,
+                p.topics = $topics
+            """
+
+            session.run(create_post_query, {
+                'post_id': post['id'],
+                'title': post['title'],
+                'selftext': post.get('selftext', ''),
+                'score': post.get('score', 0),
+                'upvote_ratio': post.get('upvote_ratio', 0.5),
+                'num_comments': post.get('num_comments', 0),
+                'created_utc': post['created_utc'],
+                'subreddit': post['subreddit'],
+                'url': post.get('url', ''),
+                'sentiment': post['sentiment'],
+                'compound_score': post['compound_score'],
+                'positive_score': post['positive_score'],
+                'negative_score': post['negative_score'],
+                'topics': post.get('topics', [])
+            })
+
+            # Link post to mentioned companies
+            for ticker in post['mentioned_tickers']:
+                link_company_query = """
+                MATCH (c:Company {ticker: $ticker})
+                MATCH (p:RedditPost {id: $post_id})
+                MERGE (p)-[:MENTIONS]->(c)
+                """
+                session.run(link_company_query, {
+                    'ticker': ticker,
+                    'post_id': post['id']
+                })
+
+            # Create sentiment nodes and link to posts
+            sentiment_query = """
+            MATCH (p:RedditPost {id: $post_id})
+            MERGE (s:Sentiment {type: $sentiment})
+            MERGE (p)-[:HAS_SENTIMENT]->(s)
+            """
+            session.run(sentiment_query, {
+                'post_id': post['id'],
+                'sentiment': post['sentiment']
+            })
+
+            # Create topic nodes and link to posts
+            for topic in post.get('topics', []):
+                topic_query = """
+                MATCH (p:RedditPost {id: $post_id})
+                MERGE (t:Topic {name: $topic})
+                MERGE (p)-[:DISCUSSES_TOPIC]->(t)
+                """
+                session.run(topic_query, {
+                    'post_id': post['id'],
+                    'topic': topic
+                })
+
+            # Process comments if available
+            for comment in post.get('comments', []):
+                create_comment_query = """
+                MERGE (c:RedditComment {id: $comment_id})
+                SET c.body = $body,
+                    c.score = $score,
+                    c.created_utc = $created_utc,
+                    c.sentiment = $sentiment,
+                    c.compound_score = $compound_score
+                """
+
+                session.run(create_comment_query, {
+                    'comment_id': comment['id'],
+                    'body': comment['body'],
+                    'score': comment['score'],
+                    'created_utc': comment['created_utc'],
+                    'sentiment': comment['sentiment'],
+                    'compound_score': comment['compound_score']
+                })
+
+                # Link comment to post
+                link_comment_query = """
+                MATCH (p:RedditPost {id: $post_id})
+                MATCH (c:RedditComment {id: $comment_id})
+                MERGE (c)-[:REPLIES_TO]->(p)
+                """
+                session.run(link_comment_query, {
+                    'post_id': post['id'],
+                    'comment_id': comment['id']
+                })
+
+                # Link comment to mentioned companies
+                for ticker in comment['mentioned_tickers']:
+                    link_comment_company_query = """
+                    MATCH (co:Company {ticker: $ticker})
+                    MATCH (c:RedditComment {id: $comment_id})
+                    MERGE (c)-[:MENTIONS]->(co)
+                    """
+                    session.run(link_comment_company_query, {
+                        'ticker': ticker,
+                        'comment_id': comment['id']
+                    })
+
+    print("Reddit posts ingestion complete!")
+
+
+def create_reddit_indexes():
+    """Create indexes for Reddit data."""
+    print("Creating Reddit indexes...")
+
+    with driver.session() as session:
+        indexes = [
+            "CREATE INDEX reddit_post_id IF NOT EXISTS FOR (p:RedditPost) ON (p.id)",
+            "CREATE INDEX reddit_post_subreddit IF NOT EXISTS FOR (p:RedditPost) ON (p.subreddit)",
+            "CREATE INDEX reddit_post_sentiment IF NOT EXISTS FOR (p:RedditPost) ON (p.sentiment)",
+            "CREATE INDEX reddit_post_created IF NOT EXISTS FOR (p:RedditPost) ON (p.created_utc)",
+            "CREATE INDEX reddit_comment_id IF NOT EXISTS FOR (c:RedditComment) ON (c.id)",
+            "CREATE INDEX sentiment_type IF NOT EXISTS FOR (s:Sentiment) ON (s.type)",
+            "CREATE INDEX topic_name IF NOT EXISTS FOR (t:Topic) ON (t.name)"
+        ]
+
+        for index_query in indexes:
+            try:
+                session.run(index_query)
+            except Exception as e:
+                print(f"Index creation warning: {e}")
+
+
+def ingest_reddit_data():
+    """Load and ingest the latest Reddit data."""
+    reddit_dir = './data/unstructured/reddit'
+    if not os.path.exists(reddit_dir):
+        print(f"Warning: Reddit directory {reddit_dir} not found. Skipping Reddit data ingestion.")
+        return
+
+    # Find the latest Reddit posts file
+    reddit_files = [f for f in os.listdir(reddit_dir) if f.startswith('reddit_posts_') and f.endswith('.json')]
+    if not reddit_files:
+        print("No Reddit data files found. Skipping Reddit data ingestion.")
+        return
+
+    # Sort by modification time and get the latest
+    latest_file = max(reddit_files, key=lambda f: os.path.getmtime(os.path.join(reddit_dir, f)))
+    reddit_file_path = os.path.join(reddit_dir, latest_file)
+
+    print(f"Using Reddit data file: {reddit_file_path}")
+
+    # Load Reddit data
+    with open(reddit_file_path, 'r') as f:
+        posts_data = json.load(f)
+
+    print(f"Loaded {len(posts_data)} Reddit posts")
+
+    # Create indexes
+    create_reddit_indexes()
+
+    # Ingest posts
+    ingest_reddit_posts(posts_data)
+
+    print("Reddit data ingestion completed successfully!")
+
+
 # --- UNCHANGED MAIN EXECUTION BLOCK ---
 if __name__ == "__main__":
     print("Clearing database...")
@@ -254,5 +433,6 @@ if __name__ == "__main__":
             print(f"No existing vector index to drop or error: {e}")
     ingest_structured_data()
     ingest_unstructured_data()
+    ingest_reddit_data()
     print("\nDatabase population finished.")
     driver.close()
