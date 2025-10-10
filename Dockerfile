@@ -15,5 +15,5 @@ COPY . .
 # Expose the port the app runs on
 EXPOSE 8080
 
-# Use the working simple_app.py instead of the broken main.py
-CMD ["uvicorn", "simple_app:app", "--host", "0.0.0.0", "--port", "8080"]
+# Start the FastAPI application defined in app/main.py
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]

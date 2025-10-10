@@ -4,6 +4,7 @@ langchain
 langchain-community
 litellm
 google-cloud-aiplatform
+google-api-python-client
 markdown
 scipy
 scikit-learn

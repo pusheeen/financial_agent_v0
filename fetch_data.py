@@ -22,8 +22,10 @@ from dotenv import load_dotenv
 from tqdm import tqdm
 import yfinance as yf
 from bs4 import BeautifulSoup
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 import logging
+import atexit
+from neo4j import GraphDatabase, basic_auth
 
 # Optional imports for Reddit
 try:
@@ -50,6 +52,13 @@ PRICES_DIR = "data/structured/prices"
 FILINGS_10K_DIR = "data/unstructured/10k"
 CEO_REPORTS_DIR = "data/reports"
 REDDIT_DATA_DIR = "data/unstructured/reddit"
+EARNINGS_DIR = "data/structured/earnings"
+FALLBACK_REDDIT_POST_FILES = [
+    Path(REDDIT_DATA_DIR) / "reddit_posts_comprehensive.json",
+    Path(REDDIT_DATA_DIR) / "reddit_posts_3months.json",
+    Path(REDDIT_DATA_DIR) / "reddit_posts_sample.json",
+    Path(REDDIT_DATA_DIR) / "reddit_posts_rss_20251005_233054.json",
+]
 
 # Create directories if they don't exist
 os.makedirs(DATA_DIR, exist_ok=True)
@@ -58,6 +67,7 @@ os.makedirs(PRICES_DIR, exist_ok=True)
 os.makedirs(FILINGS_10K_DIR, exist_ok=True)
 os.makedirs(CEO_REPORTS_DIR, exist_ok=True)
 os.makedirs(REDDIT_DATA_DIR, exist_ok=True)
+os.makedirs(EARNINGS_DIR, exist_ok=True)
 
 # Set up logging
 logging.basicConfig(
@@ -69,6 +79,29 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+# --- Neo4j Connection for Earnings Storage ---
+NEO4J_URI = os.getenv("NEO4J_URI", "neo4j+s://a71a1e63.databases.neo4j.io")
+NEO4J_USERNAME = os.getenv("NEO4J_USERNAME", "neo4j")
+NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "bSGrnZh1_1dWDXVz-xEiV6LOHIv5klPln0P2B4kWyN0")
+NEO4J_DATABASE = os.getenv("NEO4J_DATABASE", "neo4j")
+
+try:
+    neo4j_driver = GraphDatabase.driver(
+        NEO4J_URI,
+        auth=basic_auth(NEO4J_USERNAME, NEO4J_PASSWORD)
+    )
+except Exception as neo4j_error:
+    neo4j_driver = None
+    logger.warning(f"Unable to initialize Neo4j driver: {neo4j_error}")
+
+
+def close_neo4j_driver():
+    if neo4j_driver:
+        neo4j_driver.close()
+
+
+atexit.register(close_neo4j_driver)
 
 # Static CEO database cache (to avoid repeated web searches for known CEOs)
 # This will be populated from data/reports/ceo_summary_*.csv if available
@@ -477,6 +510,178 @@ def fetch_financial_statements(ticker: str):
         logger.error(f"Error fetching financials for {ticker}: {e}")
 
 
+def _clean_numeric(value: Any) -> Optional[float]:
+    """Convert values to floats where possible."""
+    if value is None:
+        return None
+    try:
+        if isinstance(value, (int, float)):
+            if pd.isna(value):
+                return None
+            return float(value)
+        if isinstance(value, str):
+            value = value.strip().replace(',', '')
+            if not value:
+                return None
+            return float(value)
+    except (ValueError, TypeError):
+        return None
+    return None
+
+
+def fetch_quarterly_earnings(ticker: str) -> List[Dict[str, Any]]:
+    """
+    Fetches the latest four quarters of earnings data for a ticker.
+
+    Returns:
+        List of dictionaries containing quarter, revenue, earnings, net income, and EPS metrics.
+    """
+    logger.info(f"Fetching quarterly earnings for {ticker}...")
+    records: List[Dict[str, Any]] = []
+
+    try:
+        stock = yf.Ticker(ticker)
+        quarterly_earnings = stock.quarterly_earnings
+        quarterly_financials = stock.quarterly_financials
+
+        # Normalize financials columns for easier lookup
+        financials_lookup = {}
+        if quarterly_financials is not None and not quarterly_financials.empty:
+            normalized_financials = quarterly_financials.copy()
+            normalized_financials.columns = normalized_financials.columns.map(lambda c: str(c))
+            for label in normalized_financials.index:
+                financials_lookup[label] = normalized_financials.loc[label].to_dict()
+
+        if quarterly_earnings is not None and not quarterly_earnings.empty:
+            quarterly_earnings = quarterly_earnings.head(4)
+            quarterly_earnings.index = quarterly_earnings.index.map(lambda idx: str(idx))
+            for period, row in quarterly_earnings.iterrows():
+                record = {
+                    "ticker": ticker,
+                    "period": period,
+                    "revenue": _clean_numeric(row.get("Revenue")),
+                    "earnings": _clean_numeric(row.get("Earnings")),
+                    "net_income": None,
+                    "eps": None,
+                }
+
+                if financials_lookup:
+                    potential_keys = {
+                        "net_income": ["Net Income", "NetIncome", "Net Income Applicable To Common Shares"],
+                        "eps": ["Diluted EPS", "Basic EPS", "DilutedEPS", "BasicEPS"]
+                    }
+                    for target_key, candidates in potential_keys.items():
+                        for candidate in candidates:
+                            values = financials_lookup.get(candidate)
+                            if values and period in values:
+                                value = _clean_numeric(values[period])
+                                if value is not None:
+                                    record[target_key] = value
+                                    break
+
+                records.append(record)
+        elif quarterly_financials is not None and not quarterly_financials.empty:
+            logger.info(f"Quarterly earnings not available for {ticker}; falling back to quarterly financials.")
+            normalized_financials = quarterly_financials.copy()
+            normalized_financials.columns = normalized_financials.columns.map(lambda c: str(c))
+            target_columns = list(normalized_financials.columns)[:4]
+
+            for period in target_columns:
+                record = {
+                    "ticker": ticker,
+                    "period": period,
+                    "revenue": None,
+                    "earnings": None,
+                    "net_income": None,
+                    "eps": None,
+                }
+
+                revenue_candidates = ["Total Revenue", "TotalRevenue", "Revenue"]
+                earnings_candidates = ["Gross Profit", "Operating Income"]
+                net_income_candidates = ["Net Income", "NetIncome", "Net Income Applicable To Common Shares"]
+                eps_candidates = ["Diluted EPS", "Basic EPS", "DilutedEPS", "BasicEPS"]
+
+                for candidate in revenue_candidates:
+                    if candidate in normalized_financials.index:
+                        record["revenue"] = _clean_numeric(normalized_financials.loc[candidate, period])
+                        break
+                for candidate in earnings_candidates:
+                    if candidate in normalized_financials.index:
+                        record["earnings"] = _clean_numeric(normalized_financials.loc[candidate, period])
+                        break
+                for candidate in net_income_candidates:
+                    if candidate in normalized_financials.index:
+                        record["net_income"] = _clean_numeric(normalized_financials.loc[candidate, period])
+                        break
+                for candidate in eps_candidates:
+                    if candidate in normalized_financials.index:
+                        record["eps"] = _clean_numeric(normalized_financials.loc[candidate, period])
+                        break
+
+                records.append(record)
+        else:
+            logger.warning(f"No quarterly earnings or financial data found for {ticker}")
+
+        if records:
+            output_path = os.path.join(EARNINGS_DIR, f"{ticker}_quarterly_earnings.json")
+            with open(output_path, 'w') as f:
+                json.dump(records, f, indent=2)
+            logger.info(f"✅ Saved quarterly earnings for {ticker} to {output_path}")
+
+        return records
+    except Exception as exc:
+        logger.error(f"Error fetching quarterly earnings for {ticker}: {exc}")
+        return []
+
+
+def store_quarterly_earnings_in_neo4j(ticker: str, company_name: Optional[str], earnings: List[Dict[str, Any]]):
+    """Persist quarterly earnings records into Neo4j."""
+    if not earnings:
+        return
+    if not neo4j_driver:
+        logger.warning("Neo4j driver not available; skipping quarterly earnings storage.")
+        return
+
+    def transform(record: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "period": record.get("period"),
+            "revenue": record.get("revenue"),
+            "earnings": record.get("earnings"),
+            "net_income": record.get("net_income"),
+            "eps": record.get("eps")
+        }
+
+    try:
+        with neo4j_driver.session(database=NEO4J_DATABASE) as session:
+            session.execute_write(
+                _upsert_quarterly_earnings,
+                ticker,
+                company_name,
+                [transform(rec) for rec in earnings]
+            )
+        logger.info(f"✅ Stored quarterly earnings for {ticker} in Neo4j.")
+    except Exception as exc:
+        logger.error(f"Failed to store quarterly earnings for {ticker} in Neo4j: {exc}")
+
+
+def _upsert_quarterly_earnings(tx, ticker: str, company_name: Optional[str], records: List[Dict[str, Any]]):
+    query = """
+    MERGE (c:Company {ticker: $ticker})
+    ON CREATE SET c.name = coalesce($company_name, c.name)
+    ON MATCH SET c.name = coalesce($company_name, c.name)
+    WITH c, $records AS earnings
+    UNWIND earnings AS record
+    MERGE (q:QuarterlyEarnings {company: $ticker, period: record.period})
+    SET q.revenue = record.revenue,
+        q.earnings = record.earnings,
+        q.netIncome = record.net_income,
+        q.eps = record.eps,
+        q.lastUpdated = datetime()
+    MERGE (c)-[:HAS_QUARTERLY_EARNINGS]->(q)
+    """
+    tx.run(query, ticker=ticker, company_name=company_name, records=records)
+
+
 def fetch_stock_prices(ticker: str):
     """Fetches the last 5 years of daily stock prices using yfinance."""
     logger.info(f"Fetching stock prices for {ticker}...")
@@ -771,11 +976,29 @@ def scrape_reddit_with_praw() -> List[Dict[str, Any]]:
 
 def fetch_reddit_data():
     """Fetch Reddit data and save to files."""
+
+    def load_fallback_posts() -> List[Dict[str, Any]]:
+        """Load pre-generated Reddit dataset if live scrape fails."""
+        for candidate in FALLBACK_REDDIT_POST_FILES:
+            if candidate.exists():
+                try:
+                    with open(candidate, 'r') as f:
+                        data = json.load(f)
+                    logger.warning(f"Using fallback Reddit dataset: {candidate}")
+                    return data
+                except Exception as fallback_error:
+                    logger.error(f"Failed to load fallback Reddit file {candidate}: {fallback_error}")
+        logger.warning("No fallback Reddit dataset found.")
+        return []
+
     posts_data = scrape_reddit_with_praw()
 
     if not posts_data:
-        logger.warning("No Reddit posts found mentioning target tickers.")
-        return
+        logger.warning("No Reddit posts found via live scrape. Attempting fallback dataset...")
+        posts_data = load_fallback_posts()
+        if not posts_data:
+            logger.warning("Skipping Reddit data save because no data is available.")
+            return
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -859,6 +1082,8 @@ if __name__ == "__main__":
 
         # Fetch and Save Data
         fetch_financial_statements(ticker)
+        earnings_records = fetch_quarterly_earnings(ticker)
+        store_quarterly_earnings_in_neo4j(ticker, row.get('company_name'), earnings_records)
         fetch_stock_prices(ticker)
         fetch_10k_filings(ticker, cik)
 

@@ -12,11 +12,23 @@ from langchain_google_vertexai import VertexAIEmbeddings
 from target_tickers import TARGET_TICKERS
 import pandas as pd
 import os
+from datetime import datetime, timezone
+import yfinance as yf
+try:
+    from googleapiclient.discovery import build
+    from googleapiclient.errors import HttpError
+except ImportError:
+    build = None  # type: ignore[assignment]
+    HttpError = Exception  # type: ignore[assignment]
 
 # --- Setup ---
 llm = LiteLlm(model="gemini-2.5-flash")
 
 embeddings = VertexAIEmbeddings(model_name="text-embedding-005")
+
+GOOGLE_SEARCH_API_KEY = os.getenv("GOOGLE_SEARCH_API_KEY")
+GOOGLE_SEARCH_ENGINE_ID = os.getenv("GOOGLE_SEARCH_ENGINE_ID")
+TICKER_LIST_STR = ", ".join(sorted(TARGET_TICKERS))
 
 # --- Tool Definitions ---
 def query_graph_database(question: str) -> dict:
@@ -45,14 +57,14 @@ def query_graph_database(question: str) -> dict:
       - (chunk:Chunk) nodes with vector embeddings for document chunks
     
     - Key properties for nodes:
-      - Company: `ticker` (e.g., 'NVDA'), `name`, `cik`
-      - Financials: `company` (ticker), `year` (string like '2024'), `revenue`, `netIncome`, `eps`
-      - Risk, Event, Strategy: `name`
-      - Document: `source` (filename), `year`, `type`, `management_outlook`
-      - Chunk: `text`, `embedding` (vector)
+    - Company: `ticker` (e.g., 'NVDA'), `name`, `cik`
+    - Financials: `company` (ticker), `year` (string like '2024'), `revenue`, `netIncome`, `eps`
+    - Risk, Event, Strategy: `name`
+    - Document: `source` (filename), `year`, `type`, `management_outlook`
+    - Chunk: `text`, `embedding` (vector)
     
     - IMPORTANT: The Financials node uses `company` property (not ticker directly) and `year` is a STRING
-    - Company tickers in your data: NVDA, MSFT, AAPL, GOOGL, AMZN
+    - Company tickers in your data: {TICKER_LIST_STR}
     
     Example Questions & Queries (ticker and year are database property names, not variables):
     - Question: "What was the revenue for NVDA in 2024?"
@@ -155,20 +167,167 @@ def predict_stock_price_tool(ticker: str) -> dict:
     print(f"Predicting price for ticker: {ticker}")
     return predict_next_day_price(ticker)
 
+
+def search_latest_news(query: str, max_results: int = 5) -> dict:
+    """
+    Uses Google Custom Search API to retrieve the latest news articles related to the query.
+    """
+    if not GOOGLE_SEARCH_API_KEY or not GOOGLE_SEARCH_ENGINE_ID:
+        return {"error": "Google Search API is not configured. Please set GOOGLE_SEARCH_API_KEY and GOOGLE_SEARCH_ENGINE_ID."}
+
+    if build is None:
+        return {"error": "google-api-python-client is not installed. Please install google-api-python-client."}
+
+    max_results = max(1, min(max_results, 10))
+
+    try:
+        service = build("customsearch", "v1", developerKey=GOOGLE_SEARCH_API_KEY, cache_discovery=False)
+        response = service.cse().list(
+            q=query,
+            cx=GOOGLE_SEARCH_ENGINE_ID,
+            num=max_results,
+            dateRestrict="d7"
+        ).execute()
+
+        items = response.get("items", [])
+        if not items:
+            return {"results": [], "message": "No recent news found for the query."}
+
+        results = []
+        for item in items:
+            pagemap = item.get("pagemap", {})
+            metatags = pagemap.get("metatags", [{}])
+            news_article = pagemap.get("newsarticle", [{}])
+
+            published = (
+                metatags[0].get("article:published_time")
+                or metatags[0].get("og:updated_time")
+                or news_article[0].get("datepublished")
+                or news_article[0].get("datemodified")
+            )
+
+            source = metatags[0].get("og:site_name") if metatags else None
+
+            results.append({
+                "title": item.get("title"),
+                "link": item.get("link"),
+                "snippet": item.get("snippet"),
+                "published": published,
+                "source": source
+            })
+
+        return {"query": query, "results": results}
+    except HttpError as http_error:
+        return {"error": f"Google Search API error: {http_error}"}
+    except Exception as exc:
+        return {"error": f"Unexpected error querying Google Search API: {exc}"}
+
+
+def fetch_intraday_price_and_events(ticker: str, max_events: int = 5) -> dict:
+    """
+    Fetches the latest available price information and recent news events for a ticker.
+    Uses Yahoo Finance (delayed data) for intraday prices and press coverage.
+    """
+    if not isinstance(ticker, str):
+        return {"error": "Ticker must be provided as a string."}
+
+    ticker = ticker.upper().strip()
+    if ticker not in TARGET_TICKERS:
+        return {"error": f"Ticker '{ticker}' is not in the supported list: {TICKER_LIST_STR}"}
+
+    try:
+        instrument = yf.Ticker(ticker)
+    except Exception as exc:
+        return {"error": f"Failed to initialize market data client for {ticker}: {exc}"}
+
+    price_payload: dict = {}
+    try:
+        fast_info = getattr(instrument, "fast_info", {}) or {}
+        last_price = fast_info.get("last_price")
+        prev_close = fast_info.get("previous_close") or fast_info.get("regular_market_previous_close")
+        currency = fast_info.get("currency") or fast_info.get("last_price_currency")
+        exchange = fast_info.get("exchange") or fast_info.get("market")
+        price_time = fast_info.get("last_price_time")
+
+        if not last_price:
+            intraday = instrument.history(period="1d", interval="5m")
+            if not intraday.empty:
+                last_row = intraday.tail(1).iloc[0]
+                last_price = float(last_row["Close"])
+                prev_close = prev_close or float(intraday.head(1).iloc[0]["Open"])
+                price_time = last_row.name.to_pydatetime().replace(tzinfo=timezone.utc)
+
+        if last_price:
+            change = None
+            percent_change = None
+            if prev_close and prev_close != 0:
+                change = float(last_price) - float(prev_close)
+                percent_change = (change / float(prev_close)) * 100
+
+            if isinstance(price_time, (int, float)):
+                price_dt = datetime.fromtimestamp(price_time, tz=timezone.utc)
+            elif isinstance(price_time, datetime):
+                price_dt = price_time.astimezone(timezone.utc)
+            else:
+                price_dt = datetime.now(timezone.utc)
+
+            price_payload = {
+                "ticker": ticker,
+                "last_price": round(float(last_price), 4),
+                "previous_close": round(float(prev_close), 4) if prev_close else None,
+                "change": round(float(change), 4) if change is not None else None,
+                "percent_change": round(float(percent_change), 4) if percent_change is not None else None,
+                "currency": currency,
+                "exchange": exchange,
+                "price_timestamp_utc": price_dt.isoformat(),
+                "disclaimer": "Pricing data sourced from Yahoo Finance and may be delayed."
+            }
+        else:
+            price_payload = {"warning": f"No price data available for {ticker} at this time."}
+    except Exception as exc:
+        price_payload = {"error": f"Failed to fetch intraday price for {ticker}: {exc}"}
+
+    events: list = []
+    try:
+        raw_news = getattr(instrument, "news", []) or []
+        for item in raw_news[:max_events]:
+            published = item.get("providerPublishTime")
+            if published:
+                published_dt = datetime.fromtimestamp(published, tz=timezone.utc).isoformat()
+            else:
+                published_dt = None
+            events.append({
+                "title": item.get("title"),
+                "publisher": item.get("publisher"),
+                "published_at_utc": published_dt,
+                "type": item.get("type"),
+                "link": item.get("link")
+            })
+    except Exception as exc:
+        events = []
+        price_payload.setdefault("warnings", []).append(f"Failed to retrieve news for {ticker}: {exc}")
+
+    return {
+        "ticker": ticker,
+        "price": price_payload,
+        "recent_events": events,
+        "notes": "News items provided by Yahoo Finance; availability varies by ticker."
+    }
+
 # --- Sub-Agent Definitions ---
 graph_qa_subagent = Agent(
     name="GraphQA_Agent",
     model=llm,
     tools=[query_graph_database],
-    description="Use for questions about company financials (revenue, net income, EPS), risks, events, strategies, and any structured data queries. Works with tickers: NVDA, MSFT, AAPL, GOOGL, AMZN.",
-    instruction="""
+    description=f"Use for questions about company financials (revenue, net income, EPS), risks, events, strategies, and any structured data queries. Works with tickers: {TICKER_LIST_STR}.",
+    instruction=f"""
     Your task is to use the `query_graph_database` tool to answer questions about:
     - Financial metrics (revenue, net income, EPS) by company and year
     - Company risks, events, and strategic focuses
     - Comparisons between companies
     - Financial trends over time
     
-    Always use the exact ticker symbols: NVDA, MSFT, AAPL, GOOGL, AMZN
+    Always use the exact ticker symbols: {TICKER_LIST_STR}
     Remember that years are stored as strings (e.g., '2024', '2023').
     """
 )
@@ -202,6 +361,48 @@ prediction_subagent = Agent(
     - Only use tickers for which models have been trained (dynamically discovered).
     - Input must be a single ticker string.
     - Always include a disclaimer that predictions are estimates based on historical data and not financial advice.
+    """
+)
+
+news_search_subagent = Agent(
+    name="NewsSearch_Agent",
+    model=llm,
+    tools=[search_latest_news],
+    description="Use to gather the latest news headlines and summaries for financial queries.",
+    instruction="""
+    Your task is to search for the most recent and relevant news stories that help answer the user's question.
+
+    CAPABILITIES:
+    - Retrieve fresh headlines related to companies, sectors, or macroeconomic topics
+    - Provide source name, publication time, and short summaries
+    - Highlight multiple perspectives when available
+
+    IMPORTANT:
+    - Use concise summaries referencing the original article
+    - Include publication time and source where possible
+    - Clarify that links point to external news sites
+    - Do not fabricate articles; rely solely on returned search results
+    """
+)
+
+market_data_subagent = Agent(
+    name="MarketData_Agent",
+    model=llm,
+    tools=[fetch_intraday_price_and_events],
+    description="Use to retrieve the latest available stock price and recent events for supported tickers using Yahoo Finance.",
+    instruction=f"""
+    Your task is to report the most recent market data for a company.
+
+    CAPABILITIES:
+    - Provide the latest intraday price (delayed) and percent change for supported tickers ({TICKER_LIST_STR})
+    - Include timestamp, exchange, and currency when available
+    - Surface recent news/events with titles, publishers, and links
+    - Mention that prices may be delayed and sourced from Yahoo Finance
+
+    IMPORTANT:
+    - Only answer for supported tickers
+    - Clearly state when data is unavailable or delayed
+    - Do not generate forecasts; stick to retrieved data
     """
 )
 
@@ -583,11 +784,11 @@ ceo_lookup_subagent = Agent(
     model=llm,
     tools=[query_ceo_info_by_ticker],
     description="Use ONLY for CEO information lookup by company ticker symbol. Returns CEO name, title, and tenure duration.",
-    instruction="""
+    instruction=f"""
     Your only task is to find CEO information by company ticker symbol.
 
     CAPABILITIES:
-    - Find CEO name by company ticker (e.g., NVDA, AAPL, MSFT)
+    - Find CEO name by company ticker (supported tickers: {TICKER_LIST_STR})
     - Extract CEO's current title and position
     - Calculate duration/tenure as CEO
     - Provide start date and years of service
@@ -607,7 +808,7 @@ ceo_lookup_subagent = Agent(
 root_agent = Agent(
     name="Financial_Root_Agent",
     model=llm,
-    sub_agents=[graph_qa_subagent, document_rag_subagent, prediction_subagent, reddit_sentiment_subagent, ceo_lookup_subagent],
+    sub_agents=[graph_qa_subagent, document_rag_subagent, news_search_subagent, market_data_subagent, prediction_subagent, reddit_sentiment_subagent, ceo_lookup_subagent],
     description="The main financial assistant that analyzes user queries and delegates to specialized agents for financial data analysis and CEO information lookup.",
     instruction=f"""
     You are a knowledgeable financial data assistant with access to data for {len(TARGET_TICKERS)} companies including: {', '.join(TARGET_TICKERS)}.
@@ -624,6 +825,16 @@ root_agent = Agent(
       * Management outlook and business strategy discussions
       * Complex business descriptions
       * Questions requiring reading through filing narratives
+
+    - Use 'NewsSearch_Agent' for:
+      * Latest news headlines, press releases, and recent developments
+      * Market-moving events or breaking stories
+      * Context that requires up-to-date information prior to analysis
+
+    - Use 'MarketData_Agent' for:
+      * Latest available (delayed) intraday price and percent change
+      * Exchange/currency metadata for a ticker
+      * Recent company news/events sourced via Yahoo Finance
 
     - Use 'StockPricePredictor_Agent' ONLY for:
       * Explicit requests to predict future stock prices
@@ -642,9 +853,11 @@ root_agent = Agent(
       * CEO career history and time in position
 
     IMPORTANT NOTES:
-    - Available companies: 18+ companies including semiconductor, energy, and tech companies
+    - Available companies: {len(TARGET_TICKERS)} tickers across semiconductor, energy, crypto-mining, and tech verticals ({TICKER_LIST_STR})
     - Financial data years: 2021-2024
+    - Quarterly earnings: Latest four quarters stored per company
     - Reddit data: Past 1 month from 9 subreddits
+    - News search: Requires internet access and Google Custom Search credentials
     - CEO data: Current information for major publicly traded companies
     - Always include disclaimers for predictions, Reddit sentiment, and CEO data
     - If uncertain about which agent to use, explain your reasoning
