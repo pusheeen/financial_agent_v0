@@ -30,9 +30,10 @@ app.add_middleware(
     allow_methods=["*"], # Allows all methods
     allow_headers=["*"], # Allows all headers
 )
-# --- Import your new ADK root agent ---
-from app.agents.agents import root_agent # Make sure the path is correct
+# --- Import your new ADK root agent and utilities ---
 from dotenv import load_dotenv  # <-- ADD THIS
+from app.agents.agents import root_agent, search_latest_news
+from app.scoring import compute_company_scores, ScoreComputationError
 load_dotenv()
 
 # --- Configuration ---
@@ -129,6 +130,27 @@ async def get_index():
     """Serves the main index.html file."""
     template_path = APP_DIR / "templates" / "index.html"
     return FileResponse(template_path)
+
+
+@app.get("/api/scores/{ticker}")
+async def get_scores(ticker: str, news_only: bool = False, query: Optional[str] = None):
+    """Return the latest computed scorecard for a company or fetch news snippets for a query."""
+    loop = asyncio.get_event_loop()
+    if news_only:
+        try:
+            search_query = query or ticker
+            data = await loop.run_in_executor(None, search_latest_news, search_query)
+            results = data.get("results", []) if isinstance(data, dict) else []
+            return {"status": "success", "data": {"latest_news": results}}
+        except Exception as exc:  # pragma: no cover - network failures
+            return {"status": "error", "message": f"Failed to fetch news: {exc}"}
+    try:
+        data = await loop.run_in_executor(None, compute_company_scores, ticker.upper())
+        return {"status": "success", "data": data}
+    except ScoreComputationError as exc:
+        return {"status": "error", "message": str(exc)}
+    except Exception as exc:  # pragma: no cover - unexpected errors bubbled to client
+        return {"status": "error", "message": f"Unexpected error: {exc}"}
 
 @app.post("/chat")
 async def chat(request: QueryRequest, http_request: Request):

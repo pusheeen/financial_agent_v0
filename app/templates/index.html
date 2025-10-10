@@ -1,75 +1,136 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financial AI Assistant</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>deepAlpha Copilot</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
         #chat-container::-webkit-scrollbar { width: 4px; }
-        #chat-container::-webkit-scrollbar-thumb { background-color: #9CA3AF; border-radius: 20px; }
+        #chat-container::-webkit-scrollbar-thumb { background-color: #94a3b8; border-radius: 20px; }
     </style>
 </head>
-<body class="bg-gray-100 flex flex-col items-center justify-center h-screen">
-
-    <div class="w-full max-w-2xl h-full md:h-5/6 flex flex-col bg-white shadow-2xl rounded-lg">
-        <div class="p-4 border-b bg-gray-800 text-white rounded-t-lg">
-            <h1 class="text-2xl font-bold text-center">Financial AI Assistant</h1>
-            <p class="text-sm text-center text-gray-300">Ask about company financials, SEC filings, and stock price predictions.</p>
-            <div class="mt-4 bg-white rounded-md p-2">
-                <script async src="https://cse.google.com/cse.js?cx=f6b5c48500e894518"></script>
-                <div class="gcse-search"></div>
+<body class="bg-slate-100 min-h-screen text-slate-900">
+    <div class="max-w-6xl mx-auto py-6 px-4 space-y-6">
+        <header class="bg-slate-900 text-slate-100 rounded-2xl p-6 shadow-lg">
+            <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+                <div>
+                    <p class="text-xs uppercase tracking-[0.3em] text-slate-400 mb-2">deepAlpha Copilot</p>
+                    <h1 class="text-3xl md:text-4xl font-semibold">Deep Alpha</h1>
+                    <p class="mt-3 text-sm text-slate-300">
+                        We translate fundamentals, financials, sentiment, leadership, events, and technical signals into a concise outlook so you can act with conviction.
+                    </p>
+                </div>
+                <form id="score-form" class="bg-slate-800/60 rounded-xl p-4 flex flex-col md:flex-row md:items-center gap-3 w-full md:w-96">
+                    <div class="flex-1">
+                        <label for="score-ticker" class="text-xs uppercase tracking-wide text-slate-400">Ticker symbol</label>
+                        <input type="text" id="score-ticker" value="NVDA" class="mt-1 w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 uppercase" placeholder="NVDA" />
+                    </div>
+                    <button type="submit" class="inline-flex items-center justify-center bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-semibold px-4 py-2 rounded-lg transition">Generate</button>
+                </form>
             </div>
-        </div>
+        </header>
 
-        <div id="chat-container" class="flex-1 p-6 overflow-y-auto">
-            <div class="flex justify-start mb-4">
-                <div class="bg-gray-200 text-gray-800 p-3 rounded-lg max-w-md">
-                    <p>Hello! How can I assist you? You can ask things like "What was the revenue for AAPL in 2023?", "Summarize the risks for NVDA from their last 10-K", or "Predict the next price for MSFT".</p>
+        <section id="scoreboard" class="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+            <p class="text-sm text-slate-500">Loading scorecard...</p>
+        </section>
+
+        <section id="score-table" class="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+            <div class="flex items-center justify-between">
+                <h2 class="text-lg font-semibold text-slate-800">Coverage Universe</h2>
+                <button id="load-all-btn" class="inline-flex items-center bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition">Refresh snapshot</button>
+            </div>
+            <p class="mt-2 text-sm text-slate-500">Click refresh to load the latest scores for every ticker we track.</p>
+            <div class="mt-4 text-sm text-slate-400">Press refresh to populate the snapshot.</div>
+        </section>
+
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-2xl shadow-lg border border-slate-200">
+                <div id="chat-container" class="p-6 overflow-y-auto h-96 space-y-4">
+                    <div class="flex justify-start">
+                        <div class="bg-slate-100 text-slate-800 p-4 rounded-xl max-w-md shadow">
+                            <p>
+                                Hello! Ask anything about a company and we will synthesize fundamentals, filings, sentiment,
+                                leadership intel, critical-path exposure, and chart signals. Try “Decode NVDA’s moat and near-term catalysts.”
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="border-t border-slate-200 p-4">
+                    <form id="chat-form" class="flex items-center gap-3">
+                        <input type="text" id="user-input" placeholder="Ask a financial question..." class="flex-1 px-4 py-3 border border-slate-300 rounded-full focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400" />
+                        <button type="submit" class="bg-slate-900 text-white p-3 rounded-full hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
+                        </button>
+                    </form>
                 </div>
             </div>
-        </div>
 
-        <div class="p-4 border-t bg-gray-50 rounded-b-lg">
-            <form id="chat-form" class="flex items-center space-x-3">
-                <input type="text" id="user-input" placeholder="Ask a financial question..." class="flex-1 p-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
-                <button type="submit" class="bg-gray-800 text-white p-3 rounded-full hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition duration-300 transform hover:scale-105">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
-                </button>
-            </form>
-        </div>
+            <aside id="insight-panel" class="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+                <h2 class="text-lg font-semibold text-slate-800 mb-3">Insights & Signals</h2>
+                <p class="text-sm text-slate-500 mb-4">Get contextual explanations for each score, major risks, catalysts, and why a company matters on the critical path.</p>
+                <div id="insight-content" class="space-y-4 text-sm text-slate-600">
+                    <p>Select a ticker to populate this panel.</p>
+                </div>
+            </aside>
+        </section>
     </div>
 
     <script>
         const chatForm = document.getElementById('chat-form');
         const userInput = document.getElementById('user-input');
         const chatContainer = document.getElementById('chat-container');
+        const scoreForm = document.getElementById('score-form');
+        const scoreTickerInput = document.getElementById('score-ticker');
+        const scoreboard = document.getElementById('scoreboard');
+        const scoreTable = document.getElementById('score-table');
+        const loadAllBtn = document.getElementById('load-all-btn');
+        const insightContent = document.getElementById('insight-content');
 
-        // --- CONFIGURATION ---
-        // For local development, this should match your uvicorn port.
-        // For production, change this URL to your deployed Google Cloud Run or AWS endpoint.
-        const apiUrl = window.location.origin + '/chat'; // Use same origin as the page
+        const apiUrl = window.location.origin + '/chat';
+        const scoreApiUrl = ticker => `${window.location.origin}/api/scores/${encodeURIComponent(ticker)}`;
+        const supportedTickers = ["NVDA","MU","AVGO","TSM","VRT","SMCI","INOD","RR","IREN","CIFR","RIOT","OKLO","SMR","CCJ","VST","NXE","EOSE","QS"];
+
+        async function fetchWithNewsContext(question) {
+            try {
+                const response = await fetch(`${window.location.origin}/api/scores/${encodeURIComponent(scoreTickerInput.value.trim().toUpperCase())}?news_only=true&query=${encodeURIComponent(question)}`);
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.status === 'success' && result.data && result.data.latest_news) {
+                        return result.data.latest_news;
+                    }
+                }
+            } catch (error) {
+                console.warn('Unable to fetch news context', error);
+            }
+            return [];
+        }
 
         chatForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const question = userInput.value.trim();
             if (!question) return;
 
-            // Display user message
             addMessage(question, 'user');
             userInput.value = '';
 
-            // Show typing indicator
             const typingIndicator = addMessage('...', 'bot', true);
+
+            let augmentedQuestion = question;
+            const newsContext = await fetchWithNewsContext(question);
+            if (newsContext.length) {
+                const contextText = newsContext.map(item => `• ${item.title} (${item.source})`).join('\n');
+                augmentedQuestion = `${question}\n\nLatest headlines:\n${contextText}`;
+            }
 
             try {
                 const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ question: question })
+                    body: JSON.stringify({ question: augmentedQuestion })
                 });
 
                 if (!response.ok) {
@@ -77,15 +138,12 @@
                 }
 
                 const data = await response.json();
-
-                // Remove typing indicator and add bot response
                 typingIndicator.remove();
                 addMessage(data.answer, 'bot');
-
             } catch (error) {
                 console.error('Error fetching from API:', error);
                 typingIndicator.remove();
-                addMessage('Sorry, I am having trouble connecting to the server. Please check the console for details.', 'bot');
+                addMessage('Sorry, I am having trouble connecting right now. Please retry in a moment.', 'bot');
             }
         });
 
@@ -94,13 +152,8 @@
             messageWrapper.className = `flex mb-4 ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
 
             const messageBubble = document.createElement('div');
-            // MODIFIED: Changed user bubble color to match the header
-            messageBubble.className = `p-3 rounded-lg max-w-md ${sender === 'user' ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-800'}`;
-
-            // This renders the response as HTML, which allows for markdown formatting like lists.
-            // A production app would need to sanitize this to prevent XSS attacks.
+            messageBubble.className = `px-4 py-3 rounded-xl max-w-md shadow ${sender === 'user' ? 'bg-slate-900 text-white' : 'bg-white text-slate-800 border border-slate-200'}`;
             messageBubble.innerHTML = text.replace(/\n/g, '<br>');
-
 
             if (isTyping) {
                 messageBubble.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
@@ -112,22 +165,171 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
             return messageWrapper;
         }
+
+        function scoreColor(score) {
+            if (score === null || score === undefined) return 'bg-slate-200 text-slate-700';
+            if (score >= 7.5) return 'bg-green-100 text-green-800';
+            if (score >= 5.0) return 'bg-yellow-100 text-yellow-800';
+            return 'bg-red-100 text-red-800';
+        }
+
+        function renderScoreboard(data) {
+            const company = data.company;
+            const overall = data.overall;
+            const scores = data.scores;
+            const timeline = data.event_timeline || [];
+
+            const componentCards = Object.entries(scores).map(([key, component]) => {
+                const label = key.charAt(0).toUpperCase() + key.slice(1);
+                const score = component.score !== null && component.score !== undefined ? component.score.toFixed(1) : '—';
+                return `
+                    <div class="rounded-xl border border-slate-200 bg-white/70 p-4 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-sm font-semibold text-slate-700 uppercase tracking-wide">${label}</h3>
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${scoreColor(component.score)}">${score}</span>
+                        </div>
+                        <p class="mt-2 text-sm text-slate-600 leading-relaxed">${component.summary || 'No summary available.'}</p>
+                    </div>
+                `;
+            }).join('');
+
+            const timelineHtml = timeline.length
+                ? timeline.map(item => `
+                    <li class="flex items-start space-x-3">
+                        <span class="mt-1 inline-block h-2 w-2 rounded-full ${item.sentiment >= 0.2 ? 'bg-green-500' : item.sentiment <= -0.2 ? 'bg-red-500' : 'bg-yellow-500'}"></span>
+                        <div>
+                            <p class="text-sm font-medium text-slate-800">${item.title || 'Event'}</p>
+                            <p class="text-xs text-slate-500">${item.source || 'News'} • ${new Date(item.published_at).toLocaleString()}</p>
+                            ${item.link ? `<a href="${item.link}" target="_blank" class="text-xs text-cyan-600 hover:underline">Read more</a>` : ''}
+                        </div>
+                    </li>
+                `).join('') : '<li class="text-sm text-slate-500">No recent events captured.</li>';
+
+            scoreboard.innerHTML = `
+                <div class="space-y-6">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div>
+                            <h2 class="text-2xl font-semibold text-slate-900">${company.name} (${company.ticker})</h2>
+                            <p class="text-sm text-slate-500">${company.sector || ''}${company.industry ? ' • ' + company.industry : ''}</p>
+                            ${company.website ? `<a href="${company.website}" target="_blank" class="text-sm text-cyan-600 hover:underline">Company website</a>` : ''}
+                        </div>
+                        <div class="text-right">
+                            <span class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold ${scoreColor(overall.score)}">
+                                Overall ${overall.score.toFixed(2)} • ${overall.recommendation}
+                            </span>
+                            <p class="text-xs text-slate-500 mt-1">Confidence: ${overall.confidence}% • Suggested hold: ${overall.hold_duration}</p>
+                        </div>
+                    </div>
+
+                    ${company.summary ? `<p class="text-sm leading-relaxed text-slate-600">${company.summary}</p>` : ''}
+
+                    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        ${componentCards}
+                    </div>
+
+                    <div class="rounded-xl border border-slate-200 p-4 bg-slate-50">
+                        <h3 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-2">Event Timeline</h3>
+                        <ul class="space-y-2">${timelineHtml}</ul>
+                    </div>
+                </div>
+            `;
+
+            insightContent.innerHTML = `
+                <div class="space-y-4">
+                    <div>
+                        <h4 class="text-xs uppercase tracking-wide text-slate-500">Key callouts</h4>
+                        <p class="mt-1 text-sm text-slate-600">${overall.recommendation} • ${overall.hold_duration}</p>
+                        <p class="mt-1 text-xs text-slate-400">Confidence ${overall.confidence}%</p>
+                    </div>
+                    <div>
+                        <h4 class="text-xs uppercase tracking-wide text-slate-500">Leadership</h4>
+                        <p class="mt-1 text-sm text-slate-600">${scores.leadership.summary || 'No leadership data.'}</p>
+                    </div>
+                    <div>
+                        <h4 class="text-xs uppercase tracking-wide text-slate-500">Critical path</h4>
+                        <p class="mt-1 text-sm text-slate-600">${scores.critical.summary || 'No critical-path explanation.'}</p>
+                    </div>
+                    <div>
+                        <h4 class="text-xs uppercase tracking-wide text-slate-500">Risks & catalysts</h4>
+                        <p class="mt-1 text-sm text-slate-600">${scores.sentiment.summary || 'Sentiment signals unavailable.'}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function loadScoreboard(ticker) {
+            scoreboard.innerHTML = '<p class="text-sm text-slate-500">Loading scorecard...</p>';
+            try {
+                const response = await fetch(scoreApiUrl(ticker));
+                const data = await response.json();
+                if (data.status === 'success') {
+                    renderScoreboard(data.data);
+                } else {
+                    scoreboard.innerHTML = `<p class="text-sm text-red-600">Unable to load scores: ${data.message || 'Unknown error'}.</p>`;
+                }
+            } catch (error) {
+                console.error('Error fetching scores:', error);
+                scoreboard.innerHTML = '<p class="text-sm text-red-600">Failed to load scorecard. Please try again later.</p>';
+            }
+        }
+
+        scoreForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const ticker = scoreTickerInput.value.trim().toUpperCase();
+            if (!ticker) return;
+            loadScoreboard(ticker);
+        });
+
+        async function refreshCoverageTable() {
+            scoreTable.innerHTML = `
+                <div class="mt-4 text-sm text-slate-500">Loading portfolio snapshot...</div>
+            `;
+            const rows = [];
+            for (const ticker of supportedTickers) {
+                try {
+                    const response = await fetch(scoreApiUrl(ticker));
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        const overall = data.data.overall;
+                        rows.push({ ticker, score: overall.score, recommendation: overall.recommendation, confidence: overall.confidence });
+                    } else {
+                        rows.push({ ticker, score: null, recommendation: data.message || 'Error', confidence: null });
+                    }
+                } catch (error) {
+                    rows.push({ ticker, score: null, recommendation: 'Fetch error', confidence: null });
+                }
+            }
+            rows.sort((a, b) => (b.score || 0) - (a.score || 0));
+            scoreTable.innerHTML = `
+                <div class="mt-4 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                    <table class="min-w-full divide-y divide-slate-200">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">Ticker</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">Score</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">Recommendation</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">Confidence</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            ${rows.map(row => `
+                                <tr class="hover:bg-slate-50">
+                                    <td class="px-4 py-2 text-sm font-medium text-slate-800">${row.ticker}</td>
+                                    <td class="px-4 py-2 text-sm ${row.score !== null ? 'text-slate-700' : 'text-slate-400'}">${row.score !== null ? row.score.toFixed(2) : '—'}</td>
+                                    <td class="px-4 py-2 text-sm text-slate-700">${row.recommendation}</td>
+                                    <td class="px-4 py-2 text-sm text-slate-500">${row.confidence !== null ? row.confidence + '%' : '—'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        loadAllBtn.addEventListener('click', refreshCoverageTable);
+
+        loadScoreboard(scoreTickerInput.value.trim().toUpperCase());
+        refreshCoverageTable();
     </script>
-    <style>
-        .typing-indicator span {
-            height: 8px;
-            width: 8px;
-            background-color: #9E9E9E;
-            border-radius: 50%;
-            display: inline-block;
-            animation: bounce 1.4s infinite ease-in-out both;
-        }
-        .typing-indicator span:nth-of-type(1) { animation-delay: -0.32s; }
-        .typing-indicator span:nth-of-type(2) { animation-delay: -0.16s; }
-        @keyframes bounce {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1.0); }
-        }
-    </style>
 </body>
 </html>
