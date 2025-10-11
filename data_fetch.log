@@ -10328,3 +10328,118 @@ Invalid 'start_time':'2025-10-04T00:30Z'. 'start_time' must be on or after 2025-
 2025-10-11 00:52:56,754 - INFO - Found CEO Mr. John Christopher Donahue via yfinance info
 2025-10-11 00:52:56,754 - INFO - Searching LinkedIn for Mr. John Christopher Donahue
 2025-10-11 00:52:59,384 - INFO - ✅ FHI: Found CEO Mr. John Christopher Donahue
+2025-10-11 00:53:04,386 - INFO - Processing CEO for 1551/6588: SSRM (SSR MINING INC.)
+2025-10-11 00:53:04,387 - INFO - Fetching CEO data for SSRM
+2025-10-11 00:53:04,570 - INFO - ✅ SSRM: Found CEO Not found
+2025-10-11 00:53:09,575 - INFO - Processing CEO for 1552/6588: LMND (Lemonade, Inc.)
+2025-10-11 00:53:09,576 - INFO - Fetching CEO data for LMND
+2025-10-11 00:53:09,760 - INFO - Found CEO Mr. Daniel Asher Schreiber via yfinance info
+2025-10-11 00:53:09,761 - INFO - Searching LinkedIn for Mr. Daniel Asher Schreiber
+2025-10-11 00:53:12,260 - INFO - ✅ LMND: Found CEO Mr. Daniel Asher Schreiber
+2025-10-11 00:53:17,266 - INFO - Processing CEO for 1553/6588: SPSC (SPS COMMERCE INC)
+2025-10-11 00:53:17,266 - INFO - Fetching CEO data for SPSC
+2025-10-11 00:53:17,503 - INFO - Found CEO Mr. Chadwick  Collins via yfinance info
+2025-10-11 00:53:17,503 - INFO - Searching LinkedIn for Mr. Chadwick  Collins
+2025-10-11 00:53:19,882 - INFO - ✅ SPSC: Found CEO Mr. Chadwick  Collins
+2025-10-11 00:53:24,887 - INFO - Processing CEO for 1554/6588: HGTY (Hagerty, Inc.)
+2025-10-11 00:53:24,887 - INFO - Fetching CEO data for HGTY
+2025-10-11 00:53:25,103 - INFO - Found CEO Mr. McKeel O. Hagerty via yfinance info
+2025-10-11 00:53:25,103 - INFO - Searching LinkedIn for Mr. McKeel O. Hagerty
+2025-10-11 00:53:27,445 - INFO - ✅ HGTY: Found CEO Mr. McKeel O. Hagerty
+2025-10-11 00:53:32,449 - INFO - Processing CEO for 1555/6588: TGS (GAS TRANSPORTER OF THE SOUTH INC)
+2025-10-11 00:53:32,449 - INFO - Fetching CEO data for TGS
+2025-10-11 00:53:32,633 - INFO - Found CEO Mr. Oscar  José Sardi via yfinance info
+2025-10-11 00:53:32,634 - INFO - Searching LinkedIn for Mr. Oscar  José Sardi
+2025-10-11 00:53:35,189 - INFO - ✅ TGS: Found CEO Mr. Oscar  José Sardi
+2025-10-11 00:53:40,195 - INFO - Processing CEO for 1556/6588: CALX (CALIX, INC)
+2025-10-11 00:53:40,195 - INFO - Fetching CEO data for CALX
+2025-10-11 00:53:40,391 - INFO - Found CEO Mr. Michael  Weening via yfinance info
+2025-10-11 00:53:40,391 - INFO - Searching LinkedIn for Mr. Michael  Weening
+2025-10-11 00:53:43,064 - INFO - ✅ CALX: Found CEO Mr. Michael  Weening
+2025-10-11 00:53:48,067 - INFO - Processing CEO for 1557/6588: UCB (UNITED COMMUNITY BANKS INC)
+2025-10-11 00:53:48,067 - INFO - Fetching CEO data for UCB
+2025-10-11 00:53:48,259 - INFO - Found CEO Mr. Herbert Lynn Harton via yfinance info
+2025-10-11 00:53:48,259 - INFO - Searching LinkedIn for Mr. Herbert Lynn Harton
+2025-10-11 00:53:50,625 - INFO - ✅ UCB: Found CEO Mr. Herbert Lynn Harton
+2025-10-11 00:53:55,629 - INFO - Processing CEO for 1558/6588: LBTYA (Liberty Global Ltd.)
+2025-10-11 00:53:55,629 - INFO - Fetching CEO data for LBTYA
+2025-10-11 00:53:55,813 - INFO - Found CEO Mr. Michael Thomas Fries via yfinance info
+2025-10-11 00:53:55,813 - INFO - Searching LinkedIn for Mr. Michael Thomas Fries
+2025-10-11 00:53:58,351 - INFO - ✅ LBTYA: Found CEO Mr. Michael Thomas Fries
+2025-10-11 00:54:03,355 - INFO - Processing CEO for 1559/6588: OSIS (OSI SYSTEMS INC)
+2025-10-11 00:54:03,355 - INFO - Fetching CEO data for OSIS
+2025-10-11 00:54:03,590 - INFO - Found CEO Mr. Ajay  Mehra via yfinance info
+2025-10-11 00:54:03,590 - INFO - Searching LinkedIn for Mr. Ajay  Mehra
+2025-10-11 00:54:06,024 - INFO - ✅ OSIS: Found CEO Mr. Ajay  Mehra
+2025-10-11 00:54:11,029 - INFO - Processing CEO for 1560/6588: AGO (ASSURED GUARANTY LTD)
+2025-10-11 00:54:11,029 - INFO - Fetching CEO data for AGO
+2025-10-11 00:54:11,214 - INFO - Found CEO Mr. Dominic John Frederico CPA via yfinance info
+2025-10-11 00:54:11,214 - INFO - Searching LinkedIn for Mr. Dominic John Frederico CPA
+2025-10-11 00:54:13,840 - INFO - ✅ AGO: Found CEO Mr. Dominic John Frederico CPA
+2025-10-11 00:54:18,845 - INFO - Processing CEO for 1561/6588: ANF (ABERCROMBIE & FITCH CO /DE/)
+2025-10-11 00:54:18,845 - INFO - Fetching CEO data for ANF
+2025-10-11 00:54:19,161 - INFO - Found CEO Ms. Fran  Horowitz via yfinance info
+2025-10-11 00:54:19,162 - INFO - Searching LinkedIn for Ms. Fran  Horowitz
+2025-10-11 00:54:21,513 - INFO - ✅ ANF: Found CEO Ms. Fran  Horowitz
+2025-10-11 00:54:26,515 - INFO - Processing CEO for 1562/6588: CRVL (CORVEL CORP)
+2025-10-11 00:54:26,515 - INFO - Fetching CEO data for CRVL
+2025-10-11 00:54:26,695 - INFO - Found CEO Mr. Michael G. Combs via yfinance info
+2025-10-11 00:54:26,695 - INFO - Searching LinkedIn for Mr. Michael G. Combs
+2025-10-11 00:54:29,251 - INFO - ✅ CRVL: Found CEO Mr. Michael G. Combs
+2025-10-11 00:54:34,254 - INFO - Processing CEO for 1563/6588: MWA (Mueller Water Products, Inc.)
+2025-10-11 00:54:34,254 - INFO - Fetching CEO data for MWA
+2025-10-11 00:54:34,500 - INFO - Found CEO Ms. Marietta Edmunds Zakas J.D. via yfinance info
+2025-10-11 00:54:34,500 - INFO - Searching LinkedIn for Ms. Marietta Edmunds Zakas J.D.
+2025-10-11 00:54:36,890 - INFO - ✅ MWA: Found CEO Ms. Marietta Edmunds Zakas J.D.
+2025-10-11 00:54:41,895 - INFO - Processing CEO for 1564/6588: VERX (Vertex, Inc.)
+2025-10-11 00:54:41,896 - INFO - Fetching CEO data for VERX
+2025-10-11 00:54:42,088 - INFO - Found CEO Mr. David  DeStefano via yfinance info
+2025-10-11 00:54:42,089 - INFO - Searching LinkedIn for Mr. David  DeStefano
+2025-10-11 00:54:44,627 - INFO - ✅ VERX: Found CEO Mr. David  DeStefano
+2025-10-11 00:54:49,630 - INFO - Processing CEO for 1565/6588: VRRM (VERRA MOBILITY Corp)
+2025-10-11 00:54:49,631 - INFO - Fetching CEO data for VRRM
+2025-10-11 00:54:49,809 - INFO - Found CEO Mr. David Martin Roberts via yfinance info
+2025-10-11 00:54:49,809 - INFO - Searching LinkedIn for Mr. David Martin Roberts
+2025-10-11 00:54:52,362 - INFO - ✅ VRRM: Found CEO Mr. David Martin Roberts
+2025-10-11 00:54:57,367 - INFO - Processing CEO for 1566/6588: PL (Planet Labs PBC)
+2025-10-11 00:54:57,367 - INFO - Fetching CEO data for PL
+2025-10-11 00:54:57,541 - INFO - Found CEO Dr. William Spencer Marshall via yfinance info
+2025-10-11 00:54:57,541 - INFO - Searching LinkedIn for Dr. William Spencer Marshall
+2025-10-11 00:54:59,952 - INFO - ✅ PL: Found CEO Dr. William Spencer Marshall
+2025-10-11 00:55:04,957 - INFO - Processing CEO for 1567/6588: TCBI (TEXAS CAPITAL BANCSHARES INC/TX)
+2025-10-11 00:55:04,957 - INFO - Fetching CEO data for TCBI
+2025-10-11 00:55:05,143 - INFO - Found CEO Mr. Robert C. Holmes via yfinance info
+2025-10-11 00:55:05,144 - INFO - Searching LinkedIn for Mr. Robert C. Holmes
+2025-10-11 00:55:07,798 - INFO - ✅ TCBI: Found CEO Mr. Robert C. Holmes
+2025-10-11 00:55:12,801 - INFO - Processing CEO for 1568/6588: IRT (INDEPENDENCE REALTY TRUST, INC.)
+2025-10-11 00:55:12,801 - INFO - Fetching CEO data for IRT
+2025-10-11 00:55:12,980 - INFO - Found CEO Mr. Scott F. Schaeffer via yfinance info
+2025-10-11 00:55:12,980 - INFO - Searching LinkedIn for Mr. Scott F. Schaeffer
+2025-10-11 00:55:15,462 - INFO - ✅ IRT: Found CEO Mr. Scott F. Schaeffer
+2025-10-11 00:55:20,465 - INFO - Processing CEO for 1569/6588: AVAL (Grupo Aval Acciones Y Valores S.A.)
+2025-10-11 00:55:20,465 - INFO - Fetching CEO data for AVAL
+2025-10-11 00:55:20,641 - INFO - ✅ AVAL: Found CEO Not found
+2025-10-11 00:55:25,645 - INFO - Processing CEO for 1570/6588: HNGE (Hinge Health, Inc.)
+2025-10-11 00:55:25,645 - INFO - Fetching CEO data for HNGE
+2025-10-11 00:55:25,824 - INFO - Found CEO Mr. Daniel A. Perez via yfinance info
+2025-10-11 00:55:25,824 - INFO - Searching LinkedIn for Mr. Daniel A. Perez
+2025-10-11 00:55:27,855 - INFO - Fetched 10 news articles for NVDA from the past 7 days (out of 10 total available)
+2025-10-11 00:55:28,348 - INFO - ✅ HNGE: Found CEO Mr. Daniel A. Perez
+2025-10-11 00:55:33,353 - INFO - Processing CEO for 1571/6588: SIG (SIGNET JEWELERS LTD)
+2025-10-11 00:55:33,354 - INFO - Fetching CEO data for SIG
+2025-10-11 00:55:33,534 - INFO - Found CEO Mr. James Kevin Symancyk via yfinance info
+2025-10-11 00:55:33,534 - INFO - Searching LinkedIn for Mr. James Kevin Symancyk
+2025-10-11 00:55:35,926 - INFO - ✅ SIG: Found CEO Mr. James Kevin Symancyk
+2025-10-11 00:55:40,939 - INFO - Processing CEO for 1572/6588: PAY (Paymentus Holdings, Inc.)
+2025-10-11 00:55:40,939 - INFO - Fetching CEO data for PAY
+2025-10-11 00:55:41,132 - INFO - Found CEO Mr. Dushyant  Sharma via yfinance info
+2025-10-11 00:55:41,133 - INFO - Searching LinkedIn for Mr. Dushyant  Sharma
+2025-10-11 00:55:43,605 - INFO - ✅ PAY: Found CEO Mr. Dushyant  Sharma
+2025-10-11 00:55:48,609 - INFO - Processing CEO for 1573/6588: ENLT (Enlight Renewable Energy Ltd.)
+2025-10-11 00:55:48,609 - INFO - Fetching CEO data for ENLT
+2025-10-11 00:55:48,782 - INFO - ✅ ENLT: Found CEO Not found
+2025-10-11 00:55:53,787 - INFO - Processing CEO for 1574/6588: PLXS (PLEXUS CORP)
+2025-10-11 00:55:53,787 - INFO - Fetching CEO data for PLXS
+2025-10-11 00:55:53,966 - INFO - Found CEO Mr. Todd P. Kelsey via yfinance info
+2025-10-11 00:55:53,966 - INFO - Searching LinkedIn for Mr. Todd P. Kelsey
+2025-10-11 00:55:56,407 - INFO - ✅ PLXS: Found CEO Mr. Todd P. Kelsey
