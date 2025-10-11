@@ -407,85 +407,132 @@
                 return '<div class="text-sm text-slate-500">No recent events to analyze.</div>';
             }
             
-            const recentEvents = timeline.filter(event => {
+            // Organize events by time periods
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const threeDaysAgo = new Date(today);
+            threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+            const sevenDaysAgo = new Date(today);
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            
+            const todayEvents = timeline.filter(event => {
                 const eventDate = new Date(event.published_at);
-                const fiveDaysAgo = new Date();
-                fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
-                return eventDate >= fiveDaysAgo;
+                return eventDate >= today;
             });
             
-            if (recentEvents.length === 0) {
-                return '<div class="text-sm text-slate-500">No events in the past 5 days to analyze.</div>';
-            }
+            const past3DaysEvents = timeline.filter(event => {
+                const eventDate = new Date(event.published_at);
+                return eventDate >= threeDaysAgo && eventDate < today;
+            });
             
-            // Analyze events for stock price impact
-            const positiveEvents = recentEvents.filter(e => e.sentiment > 0.1);
-            const negativeEvents = recentEvents.filter(e => e.sentiment < -0.1);
-            const neutralEvents = recentEvents.filter(e => e.sentiment >= -0.1 && e.sentiment <= 0.1);
+            const past7DaysEvents = timeline.filter(event => {
+                const eventDate = new Date(event.published_at);
+                return eventDate >= sevenDaysAgo && eventDate < threeDaysAgo;
+            });
             
-            // Generate impact assessment
-            let impactAssessment = '';
-            let impactLevel = '';
-            let impactColor = '';
-            
-            if (positiveEvents.length > negativeEvents.length) {
-                impactAssessment = `Recent positive developments suggest potential <strong>upward price pressure</strong> for ${ticker}. Key catalysts include strategic announcements, strong earnings, or favorable market conditions.`;
-                impactLevel = 'Positive Impact';
-                impactColor = 'text-green-700 bg-green-50 border-green-200';
-            } else if (negativeEvents.length > positiveEvents.length) {
-                impactAssessment = `Recent negative developments indicate potential <strong>downward price pressure</strong> for ${ticker}. Risk factors include regulatory concerns, competitive threats, or market headwinds.`;
-                impactLevel = 'Negative Impact';
-                impactColor = 'text-red-700 bg-red-50 border-red-200';
-            } else {
-                impactAssessment = `Mixed signals from recent events suggest <strong>neutral to moderate volatility</strong> for ${ticker}. Market reaction will depend on how key developments unfold.`;
-                impactLevel = 'Neutral Impact';
-                impactColor = 'text-yellow-700 bg-yellow-50 border-yellow-200';
-            }
-            
-            // Sources are now shown with each event, so no separate sources section needed
-            
-            // Generate key events list with sources
-            const keyEvents = recentEvents.slice(0, 3).map(event => `
-                <li class="flex items-start space-x-2 text-sm">
-                    <span class="mt-1.5 inline-block h-1.5 w-1.5 rounded-full ${event.sentiment >= 0.2 ? 'bg-green-500' : event.sentiment <= -0.2 ? 'bg-red-500' : 'bg-yellow-500'}"></span>
-                    <div class="flex-1">
-                        <span class="text-slate-700">${event.title}</span>
-                        <div class="flex items-center space-x-2 mt-1">
-                            <span class="text-slate-500 text-xs">${new Date(event.published_at).toLocaleDateString()}</span>
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-600">
-                                ${event.source || 'Unknown Source'}
-                            </span>
+            // Function to calculate sentiment and generate summary
+            function analyzePeriod(events, periodName, periodColor) {
+                if (events.length === 0) {
+                    return `
+                        <div class="p-3 rounded-lg border border-slate-200 bg-slate-50">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="text-sm font-medium text-slate-700">${periodName}</h4>
+                                <span class="text-xs text-slate-500">No events</span>
+                            </div>
+                            <p class="text-xs text-slate-500">No news events recorded for this period.</p>
+                        </div>
+                    `;
+                }
+                
+                const positiveEvents = events.filter(e => e.sentiment > 0.1);
+                const negativeEvents = events.filter(e => e.sentiment < -0.1);
+                const neutralEvents = events.filter(e => e.sentiment >= -0.1 && e.sentiment <= 0.1);
+                
+                const avgSentiment = events.reduce((sum, e) => sum + e.sentiment, 0) / events.length;
+                
+                let sentimentLabel = '';
+                let sentimentColor = '';
+                let sentimentBg = '';
+                
+                if (avgSentiment > 0.1) {
+                    sentimentLabel = 'Positive';
+                    sentimentColor = 'text-green-700';
+                    sentimentBg = 'bg-green-50 border-green-200';
+                } else if (avgSentiment < -0.1) {
+                    sentimentLabel = 'Negative';
+                    sentimentColor = 'text-red-700';
+                    sentimentBg = 'bg-red-50 border-red-200';
+                } else {
+                    sentimentLabel = 'Neutral';
+                    sentimentColor = 'text-yellow-700';
+                    sentimentBg = 'bg-yellow-50 border-yellow-200';
+                }
+                
+                const sources = [...new Set(events.map(e => e.source).filter(Boolean))];
+                const keyEvents = events.slice(0, 2).map(event => `
+                    <li class="flex items-start space-x-2 text-xs">
+                        <span class="mt-1 inline-block h-1 w-1 rounded-full ${event.sentiment >= 0.2 ? 'bg-green-500' : event.sentiment <= -0.2 ? 'bg-red-500' : 'bg-yellow-500'}"></span>
+                        <div class="flex-1">
+                            <span class="text-slate-600">${event.title.length > 60 ? event.title.substring(0, 60) + '...' : event.title}</span>
+                            <div class="flex items-center space-x-1 mt-0.5">
+                                <span class="text-slate-400 text-xs">${new Date(event.published_at).toLocaleDateString()}</span>
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-slate-100 text-slate-500">
+                                    ${event.source || 'Unknown'}
+                                </span>
+                            </div>
+                        </div>
+                    </li>
+                `).join('');
+                
+                return `
+                    <div class="p-3 rounded-lg border ${sentimentBg}">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="text-sm font-medium ${sentimentColor}">${periodName}</h4>
+                            <div class="flex items-center space-x-2">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${sentimentColor} ${sentimentBg} border">
+                                    ${sentimentLabel}
+                                </span>
+                                <span class="text-xs text-slate-500">${events.length} events</span>
+                            </div>
+                        </div>
+                        
+                        <div class="text-xs text-slate-600 mb-2">
+                            <span class="font-medium">Sentiment Breakdown:</span> 
+                            ${positiveEvents.length} positive, ${negativeEvents.length} negative, ${neutralEvents.length} neutral
+                        </div>
+                        
+                        ${keyEvents ? `
+                            <div class="mb-2">
+                                <div class="text-xs font-medium text-slate-600 mb-1">Key Events:</div>
+                                <ul class="space-y-1">
+                                    ${keyEvents}
+                                </ul>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="text-xs text-slate-500">
+                            <span class="font-medium">Sources:</span> ${sources.join(', ')}
                         </div>
                     </div>
-                </li>
-            `).join('');
+                `;
+            }
             
             return `
-                <div class="space-y-4">
-                    <div class="flex items-center justify-between">
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${impactColor}">
-                            ${impactLevel}
-                        </span>
-                        <span class="text-xs text-slate-500">${recentEvents.length} events analyzed</span>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-semibold text-slate-700 uppercase tracking-wide">Recent News Analysis</h3>
+                        <span class="text-xs text-slate-500">Supporting ${ticker} recommendation</span>
                     </div>
                     
-                    <div class="text-sm text-slate-700 leading-relaxed">
-                        ${impactAssessment}
-                    </div>
+                    ${analyzePeriod(todayEvents, "Today's News", "blue")}
+                    ${analyzePeriod(past3DaysEvents, "Past 3 Days", "green")}
+                    ${analyzePeriod(past7DaysEvents, "Past 7 Days", "purple")}
                     
-                    ${keyEvents ? `
-                        <div>
-                            <div class="text-xs font-medium text-slate-600 mb-2">Key Recent Events:</div>
-                            <ul class="space-y-1">
-                                ${keyEvents}
-                            </ul>
-                        </div>
-                    ` : ''}
-                    
-                    <div class="pt-2 border-t border-slate-200">
-                        <div class="text-xs text-slate-500">
-                            <strong>Analysis Note:</strong> This impact assessment is based on sentiment analysis of recent news events. 
-                            Actual stock price movements may vary based on broader market conditions, technical factors, and investor sentiment.
+                    <div class="mt-4 p-3 rounded-lg bg-slate-50 border border-slate-200">
+                        <div class="text-xs text-slate-600">
+                            <strong>Analysis Summary:</strong> News sentiment analysis provides context for recent price movements and market sentiment. 
+                            Positive sentiment may support bullish positions, while negative sentiment suggests caution. 
+                            Consider this alongside technical analysis and fundamental factors for investment decisions.
                         </div>
                     </div>
                 </div>
