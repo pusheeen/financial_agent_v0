@@ -883,22 +883,107 @@ def build_event_timeline(news_items: List[dict], max_items: int = 5) -> List[dic
 
 def compute_company_scores(ticker: str) -> Dict[str, object]:
     ticker = ticker.upper()
-    fin_df = load_financials_df(ticker)
-    earnings_df = load_earnings_df(ticker)
-    price_df = load_price_history(ticker)
+    
+    # Load data with error handling
+    try:
+        fin_df = load_financials_df(ticker)
+    except ScoreComputationError:
+        fin_df = pd.DataFrame()  # Empty DataFrame as fallback
+    
+    try:
+        earnings_df = load_earnings_df(ticker)
+    except ScoreComputationError:
+        earnings_df = pd.DataFrame()  # Empty DataFrame as fallback
+    
+    try:
+        price_df = load_price_history(ticker)
+    except ScoreComputationError:
+        price_df = pd.DataFrame()  # Empty DataFrame as fallback
 
-    instrument = yf.Ticker(ticker)
-    info = instrument.info or {}
-    news_items = instrument.news or []
-    reddit_summary = load_latest_reddit_summary().get(ticker)
+    # Get Yahoo Finance data with error handling
+    try:
+        instrument = yf.Ticker(ticker)
+        info = instrument.info or {}
+        news_items = instrument.news or []
+    except Exception:
+        info = {}
+        news_items = []
+    
+    try:
+        reddit_summary = load_latest_reddit_summary().get(ticker)
+    except Exception:
+        reddit_summary = None
 
-    business = compute_business_score(ticker, fin_df, info)
-    financial = compute_financial_score(fin_df, info)
-    sentiment = compute_event_sentiment_score(ticker, news_items, reddit_summary)
-    critical = compute_critical_path_score(ticker, info)
-    leadership = compute_leadership_score(ticker, info)
-    earnings = compute_earnings_score(earnings_df)
-    technical = compute_technical_score(price_df)
+    # Compute scores with individual error handling
+    try:
+        business = compute_business_score(ticker, fin_df, info)
+    except Exception as e:
+        business = ComponentScore(
+            score=None,
+            summary=f"Business score calculation failed: {str(e)}",
+            inputs={},
+            notes=[f"Error: {str(e)}"]
+        )
+    
+    try:
+        financial = compute_financial_score(fin_df, info)
+    except Exception as e:
+        financial = ComponentScore(
+            score=None,
+            summary=f"Financial score calculation failed: {str(e)}",
+            inputs={},
+            notes=[f"Error: {str(e)}"]
+        )
+    
+    try:
+        sentiment = compute_event_sentiment_score(ticker, news_items, reddit_summary)
+    except Exception as e:
+        sentiment = ComponentScore(
+            score=None,
+            summary=f"Sentiment score calculation failed: {str(e)}",
+            inputs={},
+            notes=[f"Error: {str(e)}"]
+        )
+    
+    try:
+        critical = compute_critical_path_score(ticker, info)
+    except Exception as e:
+        critical = ComponentScore(
+            score=None,
+            summary=f"Critical score calculation failed: {str(e)}",
+            inputs={},
+            notes=[f"Error: {str(e)}"]
+        )
+    
+    try:
+        leadership = compute_leadership_score(ticker, info)
+    except Exception as e:
+        leadership = ComponentScore(
+            score=None,
+            summary=f"Leadership score calculation failed: {str(e)}",
+            inputs={},
+            notes=[f"Error: {str(e)}"]
+        )
+    
+    try:
+        earnings = compute_earnings_score(earnings_df)
+    except Exception as e:
+        earnings = ComponentScore(
+            score=None,
+            summary=f"Earnings score calculation failed: {str(e)}",
+            inputs={},
+            notes=[f"Error: {str(e)}"]
+        )
+    
+    try:
+        technical = compute_technical_score(price_df)
+    except Exception as e:
+        technical = ComponentScore(
+            score=None,
+            summary=f"Technical score calculation failed: {str(e)}",
+            inputs={},
+            notes=[f"Error: {str(e)}"]
+        )
 
     component_scores = {
         "business": business,

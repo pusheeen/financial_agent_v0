@@ -45,6 +45,125 @@
             <div class="mt-4 text-sm text-slate-400">Press refresh to populate the snapshot.</div>
         </section>
 
+        <section class="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+            <button id="toggleMethodology" class="flex items-center justify-between w-full text-left focus:outline-none">
+                <h2 class="text-lg font-semibold text-slate-800">Score Calculation Methodology</h2>
+                <svg id="methodologyChevron" class="w-5 h-5 text-slate-500 transform rotate-0 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
+            <div id="methodologyContent" class="mt-4 hidden text-sm text-slate-600 space-y-4">
+                <p class="text-slate-700">This section provides a detailed explanation of how each score component is calculated, including data sources, time periods, and thresholds.</p>
+
+                <div class="grid gap-4 md:grid-cols-2">
+                    <div class="space-y-3">
+                        <h4 class="font-semibold text-slate-700">BUSINESS Score:</h4>
+                        <p><strong>Data Sources:</strong> Yahoo Finance financials, SEC filings</p>
+                        <p><strong>Time Period:</strong> Last 4 quarters for CAGR, latest quarter for margins</p>
+                        <p><strong>Calculation:</strong> Revenue CAGR (Compound Annual Growth Rate), Gross Margin, R&D Intensity, Industry Score. Component scores are averaged and clamped between 0-10.</p>
+                        <p><strong>Thresholds:</strong></p>
+                        <ul class="list-disc list-inside ml-4 text-xs space-y-1">
+                            <li>Revenue CAGR: [(-5%, 2pts), (0%, 4pts), (5%, 6pts), (15%, 8pts), (30%, 10pts)]</li>
+                            <li>Gross Margin: [(20%, 3pts), (35%, 5pts), (45%, 7pts), (55%, 9pts), (65%, 10pts)]</li>
+                            <li>R&D Intensity: [(5%, 4pts), (10%, 6pts), (15%, 8pts), (20%, 9pts), (30%, 10pts)]</li>
+                        </ul>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h4 class="font-semibold text-slate-700">FINANCIAL Score:</h4>
+                        <p><strong>Data Sources:</strong> Yahoo Finance fundamentals, company financials</p>
+                        <p><strong>Time Period:</strong> Last 4 quarters for trends, latest values for ratios</p>
+                        <p><strong>Calculation:</strong> Revenue CAGR, Net Margin, FCF/Debt coverage, D/E ratio, P/E ratio, P/S ratio. Component scores averaged and clamped.</p>
+                        <p><strong>Thresholds:</strong></p>
+                        <ul class="list-disc list-inside ml-4 text-xs space-y-1">
+                            <li>Revenue CAGR: Same as Business score</li>
+                            <li>Net Margin: [(0%, 3pts), (5%, 5pts), (10%, 6.5pts), (20%, 8.5pts), (30%, 10pts)]</li>
+                            <li>FCF/Debt: [(0.2x, 3pts), (0.5x, 5pts), (1x, 7pts), (1.5x, 9pts), (2x, 10pts)]</li>
+                            <li>D/E Ratio: [(50%, 9.5pts), (100%, 8.5pts), (200%, 6.5pts), (300%, 4.5pts), (500%, 3pts)]</li>
+                        </ul>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h4 class="font-semibold text-slate-700">SENTIMENT Score:</h4>
+                        <p><strong>Data Sources:</strong> Yahoo Finance news, Reddit API</p>
+                        <p><strong>Time Period:</strong> Last 30 days (weighted by recency)</p>
+                        <p><strong>Calculation:</strong> VADER sentiment analysis on news headlines + Reddit bullish ratio. Scores weighted by coverage and averaged.</p>
+                        <p><strong>Thresholds:</strong></p>
+                        <ul class="list-disc list-inside ml-4 text-xs space-y-1">
+                            <li>News Sentiment: [(-0.6, 1pt), (-0.2, 4pts), (0, 5.5pts), (0.2, 7.5pts), (0.45, 9.5pts)]</li>
+                            <li>Reddit Ratio: [(-0.6, 2pts), (-0.2, 4pts), (0, 6pts), (0.2, 8pts), (0.4, 9.5pts)]</li>
+                        </ul>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h4 class="font-semibold text-slate-700">TECHNICAL Score:</h4>
+                        <p><strong>Data Sources:</strong> Yahoo Finance price data</p>
+                        <p><strong>Time Period:</strong> Latest trading data</p>
+                        <p><strong>Calculation:</strong> RSI (14-day), MACD (12,26,9), Moving Averages (50,200). Base score 5.0 with adjustments.</p>
+                        <p><strong>Rules:</strong></p>
+                        <ul class="list-disc list-inside ml-4 text-xs space-y-1">
+                            <li>RSI < 30: +3pts (oversold), RSI > 70: -3pts (overbought)</li>
+                            <li>MACD bullish crossover: +2pts, bearish: -2pts</li>
+                            <li>MA50 > MA200: +3pts (golden cross), else -2pts</li>
+                        </ul>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h4 class="font-semibold text-slate-700">CRITICAL Score:</h4>
+                        <p><strong>Data Sources:</strong> Internal assessment framework</p>
+                        <p><strong>Time Period:</strong> Static mapping based on strategic importance</p>
+                        <p><strong>Calculation:</strong> Pre-defined criticality scores (5-10pts) based on industry and strategic positioning.</p>
+                        <p><strong>Examples:</strong></p>
+                        <ul class="list-disc list-inside ml-4 text-xs space-y-1">
+                            <li>NVDA: 10.0pts (AI/semiconductor leader)</li>
+                            <li>TSM: 9.0pts (chip manufacturing critical)</li>
+                            <li>SMR: 7.0pts (nuclear energy infrastructure)</li>
+                        </ul>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h4 class="font-semibold text-slate-700">LEADERSHIP Score:</h4>
+                        <p><strong>Data Sources:</strong> Yahoo Finance officers, CEO profile reports</p>
+                        <p><strong>Time Period:</strong> Current leadership data</p>
+                        <p><strong>Calculation:</strong> CEO tenure, compensation, officer count, reputation bonus.</p>
+                        <p><strong>Thresholds:</strong></p>
+                        <ul class="list-disc list-inside ml-4 text-xs space-y-1">
+                            <li>CEO Tenure: [(2yrs, 6pts), (4yrs, 7pts), (6yrs, 8pts), (10yrs, 9pts), (15yrs, 9.5pts)]</li>
+                            <li>Compensation: (>$5M: 8.5pts, >$10M: 9.5pts)</li>
+                            <li>Officer Count: (5+ officers: 7.5pts)</li>
+                            <li>Co-founder bonus: 9.0pts</li>
+                        </ul>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h4 class="font-semibold text-slate-700">EARNINGS Score:</h4>
+                        <p><strong>Data Sources:</strong> Quarterly earnings data, Yahoo Finance</p>
+                        <p><strong>Time Period:</strong> Quarterly earnings history</p>
+                        <p><strong>Calculation:</strong> EPS trend, Revenue trend, Consistency metrics. Component scores averaged.</p>
+                        <p><strong>Thresholds:</strong></p>
+                        <ul class="list-disc list-inside ml-4 text-xs space-y-1">
+                            <li>EPS Trend: [(-10%, 2pts), (0%, 4pts), (5%, 6pts), (15%, 8.5pts), (30%, 10pts)]</li>
+                            <li>Revenue Trend: [(-5%, 2pts), (0%, 4pts), (5%, 6.5pts), (15%, 8.5pts), (30%, 10pts)]</li>
+                            <li>Consistency: [(2, 4pts), (5, 6pts), (10, 8pts), (15, 9pts), (25, 10pts)]</li>
+                        </ul>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h4 class="font-semibold text-slate-700">Overall Score:</h4>
+                        <p><strong>Weighting:</strong> Business (20%), Financial (25%), Sentiment (15%), Critical (10%), Leadership (10%), Earnings (10%), Technical (10%)</p>
+                        <p><strong>Recommendation:</strong></p>
+                        <ul class="list-disc list-inside ml-4 text-xs space-y-1">
+                            <li>8.0+ → Strong Buy (Long-term 12-24 months)</li>
+                            <li>7.0+ → Buy (Long-term 12-18 months)</li>
+                            <li>4.0+ → Hold (Medium-term 6-12 months)</li>
+                            <li>&lt;4.0 → Sell (Short-term &lt;6 months)</li>
+                        </ul>
+                        <p><strong>Confidence:</strong> Based on score variance - higher variance = lower confidence</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="bg-white rounded-2xl shadow-lg border border-slate-200">
                 <div id="chat-container" class="p-6 overflow-y-auto h-96 space-y-4">
@@ -93,6 +212,28 @@
         const apiUrl = window.location.origin + '/chat';
         const scoreApiUrl = ticker => `${window.location.origin}/api/scores/${encodeURIComponent(ticker)}`;
         const supportedTickers = ["NVDA","MU","AVGO","TSM","VRT","SMCI","INOD","RR","IREN","CIFR","RIOT","OKLO","SMR","CCJ","VST","NXE","EOSE","QS"];
+        
+        // Company metadata for enhanced display
+        const companyMetadata = {
+            "NVDA": { name: "NVIDIA Corp", industry: "Semiconductors" },
+            "MU": { name: "Micron Technology Inc", industry: "Semiconductors" },
+            "AVGO": { name: "Broadcom Inc", industry: "Semiconductors" },
+            "TSM": { name: "Taiwan Semiconductor Manufacturing Co Ltd", industry: "Semiconductors" },
+            "VRT": { name: "Vertiv Holdings Co", industry: "Industrial Equipment" },
+            "SMCI": { name: "Super Micro Computer Inc", industry: "Computer Hardware" },
+            "INOD": { name: "Innodata Inc", industry: "Information Technology Services" },
+            "RR": { name: "Richtech Robotics Inc", industry: "Industrial Machinery" },
+            "IREN": { name: "Iren Ltd", industry: "Utilities" },
+            "CIFR": { name: "Cipher Mining Inc", industry: "Cryptocurrency Mining" },
+            "RIOT": { name: "Riot Platforms Inc", industry: "Cryptocurrency Mining" },
+            "OKLO": { name: "Oklo Inc", industry: "Nuclear Energy" },
+            "SMR": { name: "NuScale Power Corp", industry: "Nuclear Energy" },
+            "CCJ": { name: "Cameco Corp", industry: "Uranium Mining" },
+            "VST": { name: "Vistra Corp", industry: "Utilities" },
+            "NXE": { name: "NexGen Energy Ltd", industry: "Uranium Mining" },
+            "EOSE": { name: "Eos Energy Enterprises Inc", industry: "Energy Storage" },
+            "QS": { name: "QuantumScape Corp", industry: "Battery Technology" }
+        };
 
         async function fetchWithNewsContext(question) {
             try {
@@ -173,6 +314,94 @@
             return 'bg-red-100 text-red-800';
         }
 
+        function getScoreMethodology(scoreType, component) {
+            const methodologies = {
+                business: `
+                    <div><strong>Data Sources:</strong> Yahoo Finance financials, SEC filings</div>
+                    <div><strong>Time Period:</strong> Last 4 quarters for CAGR, latest quarter for margins</div>
+                    <div><strong>Calculation:</strong> Revenue CAGR (30%+ = 10pts), Gross Margin (65%+ = 10pts), R&D Intensity (20%+ = 10pts), Industry Score (6-10pts)</div>
+                    <div><strong>Inputs:</strong> ${Object.entries(component.inputs || {}).filter(([k,v]) => v !== null && v !== undefined).map(([k,v]) => `${k}: ${typeof v === 'number' ? v.toFixed(2) : v}`).join(', ')}</div>
+                `,
+                financial: `
+                    <div><strong>Data Sources:</strong> Yahoo Finance fundamentals, company financials</div>
+                    <div><strong>Time Period:</strong> Last 4 quarters for trends, latest values for ratios</div>
+                    <div><strong>Calculation:</strong> Revenue CAGR (30%+ = 10pts), Net Margin (20%+ = 8.5pts), FCF/Debt (2x+ = 10pts), D/E (50- = 9.5pts), P/E (15- = 9.5pts), P/S (2- = 9pts)</div>
+                    <div><strong>Inputs:</strong> ${Object.entries(component.inputs || {}).filter(([k,v]) => v !== null && v !== undefined).map(([k,v]) => `${k}: ${typeof v === 'number' ? v.toFixed(2) : v}`).join(', ')}</div>
+                `,
+                sentiment: `
+                    <div><strong>Data Sources:</strong> Yahoo Finance news, Reddit API</div>
+                    <div><strong>Time Period:</strong> Last 30 days (weighted by recency)</div>
+                    <div><strong>Calculation:</strong> News sentiment via VADER analysis (0.45+ = 9.5pts), Reddit bullish ratio (0.4+ = 9.5pts)</div>
+                    <div><strong>Inputs:</strong> ${Object.entries(component.inputs || {}).filter(([k,v]) => v !== null && v !== undefined).map(([k,v]) => `${k}: ${typeof v === 'number' ? v.toFixed(2) : v}`).join(', ')}</div>
+                `,
+                critical: `
+                    <div><strong>Data Sources:</strong> Internal assessment framework</div>
+                    <div><strong>Time Period:</strong> Static mapping based on strategic importance</div>
+                    <div><strong>Calculation:</strong> Pre-defined criticality scores (5-10pts) based on industry and strategic positioning</div>
+                    <div><strong>Inputs:</strong> ${Object.entries(component.inputs || {}).filter(([k,v]) => v !== null && v !== undefined).map(([k,v]) => `${k}: ${typeof v === 'number' ? v.toFixed(2) : v}`).join(', ')}</div>
+                `,
+                leadership: `
+                    <div><strong>Data Sources:</strong> Yahoo Finance officers, CEO profile reports</div>
+                    <div><strong>Time Period:</strong> Current leadership data</div>
+                    <div><strong>Calculation:</strong> CEO tenure (15+ yrs = 9.5pts), compensation (>$10M = 9.5pts), officer count (5+ = 7.5pts), reputation bonus</div>
+                    <div><strong>Inputs:</strong> ${Object.entries(component.inputs || {}).filter(([k,v]) => v !== null && v !== undefined).map(([k,v]) => `${k}: ${typeof v === 'number' ? v.toFixed(2) : v}`).join(', ')}</div>
+                `,
+                earnings: `
+                    <div><strong>Data Sources:</strong> Quarterly earnings data, Yahoo Finance</div>
+                    <div><strong>Time Period:</strong> Quarterly earnings history</div>
+                    <div><strong>Calculation:</strong> EPS trend (30%+ = 10pts), Revenue trend (30%+ = 10pts), Consistency score (25+ = 10pts)</div>
+                    <div><strong>Inputs:</strong> ${Object.entries(component.inputs || {}).filter(([k,v]) => v !== null && v !== undefined).map(([k,v]) => `${k}: ${typeof v === 'number' ? v.toFixed(2) : v}`).join(', ')}</div>
+                `,
+                technical: `
+                    <div><strong>Data Sources:</strong> Yahoo Finance price data</div>
+                    <div><strong>Time Period:</strong> Latest trading data</div>
+                    <div><strong>Calculation:</strong> RSI (30-70 = neutral), MACD crossover (±2pts), Moving average alignment (±3pts), Base score 5.0</div>
+                    <div><strong>Inputs:</strong> ${Object.entries(component.inputs || {}).filter(([k,v]) => v !== null && v !== undefined).map(([k,v]) => `${k}: ${typeof v === 'number' ? v.toFixed(2) : v}`).join(', ')}</div>
+                `
+            };
+            return methodologies[scoreType] || '<div>Methodology not available</div>';
+        }
+
+        function generateEventSummary(timeline) {
+            if (!timeline || timeline.length === 0) {
+                return '<div class="text-sm text-slate-500">No recent events to summarize.</div>';
+            }
+            
+            const recentEvents = timeline.filter(event => {
+                const eventDate = new Date(event.published_at);
+                const fiveDaysAgo = new Date();
+                fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
+                return eventDate >= fiveDaysAgo;
+            });
+            
+            if (recentEvents.length === 0) {
+                return '<div class="text-sm text-slate-500">No events in the past 5 days.</div>';
+            }
+            
+            const positiveEvents = recentEvents.filter(e => e.sentiment > 0.1).length;
+            const negativeEvents = recentEvents.filter(e => e.sentiment < -0.1).length;
+            const neutralEvents = recentEvents.length - positiveEvents - negativeEvents;
+            
+            let sentimentSummary = '';
+            if (positiveEvents > negativeEvents) {
+                sentimentSummary = 'Recent sentiment is <strong>positive</strong>, supporting a bullish outlook.';
+            } else if (negativeEvents > positiveEvents) {
+                sentimentSummary = 'Recent sentiment is <strong>negative</strong>, suggesting caution.';
+            } else {
+                sentimentSummary = 'Recent sentiment is <strong>mixed</strong>, requiring careful analysis.';
+            }
+            
+            return `
+                <div class="space-y-2">
+                    <div class="text-sm font-medium text-slate-700">Past 5 Days Summary (${recentEvents.length} events)</div>
+                    <div class="text-sm text-slate-600">${sentimentSummary}</div>
+                    <div class="text-xs text-slate-500">
+                        Positive: ${positiveEvents} | Negative: ${negativeEvents} | Neutral: ${neutralEvents}
+                    </div>
+                </div>
+            `;
+        }
+
         function renderScoreboard(data) {
             const company = data.company;
             const overall = data.overall;
@@ -182,6 +411,10 @@
             const componentCards = Object.entries(scores).map(([key, component]) => {
                 const label = key.charAt(0).toUpperCase() + key.slice(1);
                 const score = component.score !== null && component.score !== undefined ? component.score.toFixed(1) : '—';
+                
+                // Get methodology explanation for each score
+                const methodology = getScoreMethodology(key, component);
+                
                 return `
                     <div class="rounded-xl border border-slate-200 bg-white/70 p-4 shadow-sm">
                         <div class="flex items-center justify-between">
@@ -189,6 +422,12 @@
                             <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${scoreColor(component.score)}">${score}</span>
                         </div>
                         <p class="mt-2 text-sm text-slate-600 leading-relaxed">${component.summary || 'No summary available.'}</p>
+                        <details class="mt-3">
+                            <summary class="text-xs text-slate-500 cursor-pointer hover:text-slate-700">Score Methodology</summary>
+                            <div class="mt-2 text-xs text-slate-600 space-y-1">
+                                ${methodology}
+                            </div>
+                        </details>
                     </div>
                 `;
             }).join('');
@@ -228,8 +467,9 @@
                     </div>
 
                     <div class="rounded-xl border border-slate-200 p-4 bg-slate-50">
-                        <h3 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-2">Event Timeline</h3>
-                        <ul class="space-y-2">${timelineHtml}</ul>
+                        <h3 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Event Timeline</h3>
+                        ${generateEventSummary(timeline)}
+                        <ul class="space-y-2 mt-4">${timelineHtml}</ul>
                     </div>
                 </div>
             `;
@@ -306,20 +546,29 @@
                         <thead class="bg-slate-50">
                             <tr>
                                 <th class="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">Ticker</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">Company</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">Industry</th>
                                 <th class="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">Score</th>
                                 <th class="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">Recommendation</th>
                                 <th class="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">Confidence</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
-                            ${rows.map(row => `
-                                <tr class="hover:bg-slate-50">
-                                    <td class="px-4 py-2 text-sm font-medium text-slate-800">${row.ticker}</td>
-                                    <td class="px-4 py-2 text-sm ${row.score !== null ? 'text-slate-700' : 'text-slate-400'}">${row.score !== null ? row.score.toFixed(2) : '—'}</td>
-                                    <td class="px-4 py-2 text-sm text-slate-700">${row.recommendation}</td>
-                                    <td class="px-4 py-2 text-sm text-slate-500">${row.confidence !== null ? row.confidence + '%' : '—'}</td>
-                                </tr>
-                            `).join('')}
+                            ${rows.map(row => {
+                                const metadata = companyMetadata[row.ticker] || { name: row.ticker, industry: 'Unknown' };
+                                return `
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="px-4 py-2 text-sm font-medium text-slate-800">
+                                            <a href="https://finance.yahoo.com/quote/${row.ticker}" target="_blank" class="text-cyan-600 hover:text-cyan-800 hover:underline">${row.ticker}</a>
+                                        </td>
+                                        <td class="px-4 py-2 text-sm text-slate-700">${metadata.name}</td>
+                                        <td class="px-4 py-2 text-sm text-slate-600">${metadata.industry}</td>
+                                        <td class="px-4 py-2 text-sm ${row.score !== null ? 'text-slate-700' : 'text-slate-400'}">${row.score !== null ? row.score.toFixed(2) : '—'}</td>
+                                        <td class="px-4 py-2 text-sm text-slate-700">${row.recommendation}</td>
+                                        <td class="px-4 py-2 text-sm text-slate-500">${row.confidence !== null ? row.confidence + '%' : '—'}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
                         </tbody>
                     </table>
                 </div>
@@ -330,6 +579,19 @@
 
         loadScoreboard(scoreTickerInput.value.trim().toUpperCase());
         refreshCoverageTable();
+
+        // Methodology toggle functionality
+        document.getElementById('toggleMethodology').addEventListener('click', function() {
+            const content = document.getElementById('methodologyContent');
+            const chevron = document.getElementById('methodologyChevron');
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                chevron.classList.add('rotate-180');
+            } else {
+                content.classList.add('hidden');
+                chevron.classList.remove('rotate-180');
+            }
+        });
     </script>
 </body>
 </html>
