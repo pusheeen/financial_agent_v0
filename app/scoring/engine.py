@@ -434,9 +434,9 @@ def compute_event_sentiment_score(ticker: str, news_items: List[dict], reddit_st
 
     for item in news_items or []:
         content = item.get("content") or {}
-        title = item.get("title") or content.get("title") or "Event"
+        title = content.get("title") or item.get("title") or "Event"
         summary = content.get("summary") or content.get("description") or title
-        provider = (item.get("provider") or {}).get("displayName") or (content.get("provider") or {}).get("displayName")
+        provider = (content.get("provider") or {}).get("displayName") or (item.get("provider") or {}).get("displayName") or "Unknown"
         link = (
             item.get("link")
             or (item.get("canonicalUrl") or {}).get("url")
@@ -849,8 +849,8 @@ def build_event_timeline(news_items: List[dict], max_items: int = 5) -> List[dic
     timeline = []
     for item in news_items[:max_items]:
         content = item.get("content") or {}
-        title = item.get("title") or content.get("title") or "Event"
-        provider = (item.get("provider") or {}).get("displayName") or (content.get("provider") or {}).get("displayName")
+        title = content.get("title") or item.get("title") or "Event"
+        provider = (content.get("provider") or {}).get("displayName") or (item.get("provider") or {}).get("displayName") or "Unknown"
         link = (
             item.get("link")
             or (item.get("canonicalUrl") or {}).get("url")
