@@ -442,28 +442,20 @@
                 impactColor = 'text-yellow-700 bg-yellow-50 border-yellow-200';
             }
             
-            // Generate sources list
-            const sources = [...new Set(recentEvents.map(e => e.source).filter(Boolean))];
-            const sourcesHtml = sources.length > 0 ? `
-                <div class="mt-3">
-                    <div class="text-xs font-medium text-slate-600 mb-2">Sources:</div>
-                    <div class="flex flex-wrap gap-2">
-                        ${sources.map(source => `
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-slate-100 text-slate-700">
-                                ${source}
-                            </span>
-                        `).join('')}
-                    </div>
-                </div>
-            ` : '';
+            // Sources are now shown with each event, so no separate sources section needed
             
-            // Generate key events list
+            // Generate key events list with sources
             const keyEvents = recentEvents.slice(0, 3).map(event => `
                 <li class="flex items-start space-x-2 text-sm">
                     <span class="mt-1.5 inline-block h-1.5 w-1.5 rounded-full ${event.sentiment >= 0.2 ? 'bg-green-500' : event.sentiment <= -0.2 ? 'bg-red-500' : 'bg-yellow-500'}"></span>
-                    <div>
+                    <div class="flex-1">
                         <span class="text-slate-700">${event.title}</span>
-                        <span class="text-slate-500 text-xs ml-2">(${new Date(event.published_at).toLocaleDateString()})</span>
+                        <div class="flex items-center space-x-2 mt-1">
+                            <span class="text-slate-500 text-xs">${new Date(event.published_at).toLocaleDateString()}</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-600">
+                                ${event.source || 'Unknown Source'}
+                            </span>
+                        </div>
                     </div>
                 </li>
             `).join('');
@@ -489,8 +481,6 @@
                             </ul>
                         </div>
                     ` : ''}
-                    
-                    ${sourcesHtml}
                     
                     <div class="pt-2 border-t border-slate-200">
                         <div class="text-xs text-slate-500">
