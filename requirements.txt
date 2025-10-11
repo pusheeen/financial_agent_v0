@@ -23,3 +23,15 @@ yfinance
 praw
 textblob
 vaderSentiment
+tweepy
+stripe
+sqlalchemy
+databases[sqlite]
+asyncpg
+databases[postgresql]
+passlib[bcrypt]
+python-multipart
+jinja2
+itsdangerous
+celery
+redis
