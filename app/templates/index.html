@@ -22,6 +22,17 @@
                         We translate fundamentals, financials, sentiment, leadership, events, and technical signals into a concise outlook so you can act with conviction.
                     </p>
                 </div>
+                {% if user %}
+                    <nav class="flex items-center space-x-4">
+                        <a href="/account" class="text-slate-100 hover:text-cyan-400">Account</a>
+                        <a href="/logout" class="text-slate-100 hover:text-cyan-400">Logout</a>
+                    </nav>
+                {% else %}
+                    <nav class="flex items-center space-x-4">
+                        <a href="/login" class="text-slate-100 hover:text-cyan-400">Login</a>
+                        <a href="/register" class="text-slate-100 hover:text-cyan-400">Sign Up</a>
+                    </nav>
+                {% endif %}
                 <form id="score-form" class="bg-slate-800/60 rounded-xl p-4 flex flex-col md:flex-row md:items-center gap-3 w-full md:w-96">
                     <div class="flex-1">
                         <label for="score-ticker" class="text-xs uppercase tracking-wide text-slate-400">Ticker symbol</label>

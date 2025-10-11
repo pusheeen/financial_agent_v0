@@ -18,6 +18,15 @@ from google.adk.sessions import InMemorySessionService
 from google.genai import types
 # Add this import
 from fastapi.middleware.cors import CORSMiddleware 
+import os
+import stripe
+import databases
+import sqlalchemy
+from passlib.context import CryptContext
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+from starlette.middleware.sessions import SessionMiddleware
+from fastapi import Form, Depends, HTTPException
 
 app = FastAPI()
 
@@ -38,6 +47,74 @@ load_dotenv()
 
 # --- Configuration ---
 APP_DIR = Path(__file__).resolve().parent
+# Stripe configuration
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+stripe.api_key = STRIPE_SECRET_KEY or None
+DOMAIN = os.getenv("DOMAIN", "http://localhost:8000")
+PRICE_ID = os.getenv("STRIPE_PRICE_ID")
+# Flag whether Stripe is configured
+HAS_STRIPE = bool(STRIPE_SECRET_KEY and PRICE_ID)
+
+# Database setup
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./users.db")
+database = databases.Database(DATABASE_URL)
+metadata = sqlalchemy.MetaData()
+
+users = sqlalchemy.Table(
+    "users",
+    metadata,
+    sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
+    sqlalchemy.Column("username", sqlalchemy.String, unique=True, index=True),
+    sqlalchemy.Column("email", sqlalchemy.String, unique=True, index=True),
+    sqlalchemy.Column("hashed_password", sqlalchemy.String),
+    sqlalchemy.Column("stripe_customer_id", sqlalchemy.String, nullable=True),
+    sqlalchemy.Column("stripe_subscription_id", sqlalchemy.String, nullable=True),
+    sqlalchemy.Column("subscription_status", sqlalchemy.String, nullable=True),
+)
+
+engine = sqlalchemy.create_engine(
+    DATABASE_URL, connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+)
+metadata.create_all(engine)
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+@app.on_event("startup")
+async def startup():
+    await database.connect()
+
+@app.on_event("shutdown")
+async def shutdown():
+    await database.disconnect()
+
+def get_password_hash(password: str):
+    return pwd_context.hash(password)
+
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+async def get_user_by_email(email: str):
+    query = users.select().where(users.c.email == email)
+    return await database.fetch_one(query)
+
+async def get_user_by_id(user_id: int):
+    query = users.select().where(users.c.id == user_id)
+    return await database.fetch_one(query)
+
+async def authenticate_user(email: str, password: str):
+    user = await get_user_by_email(email)
+    if not user or not verify_password(password, user["hashed_password"]):
+        return None
+    return user
+
+async def get_current_user(request: Request):
+    user_id = request.session.get("user")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    user = await get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    return user
 
 # --- ADK Agent Runner Setup ---
 class AgentCaller:
@@ -120,16 +197,23 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Add session middleware and template rendering
+app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET_KEY", "changeme"))
+templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
+
 class QueryRequest(BaseModel):
     """Defines the structure of the request body for the /chat endpoint."""
     question: str
     include_reasoning: bool = False
 
-@app.get("/")
-async def get_index():
+@app.get("/", response_class=HTMLResponse)
+async def get_index(request: Request):
     """Serves the main index.html file."""
-    template_path = APP_DIR / "templates" / "index.html"
-    return FileResponse(template_path)
+    user = None
+    user_id = request.session.get("user")
+    if user_id:
+        user = await get_user_by_id(user_id)
+    return templates.TemplateResponse("index.html", {"request": request, "user": user})
 
 
 @app.get("/api/scores/{ticker}")
@@ -173,3 +257,130 @@ async def chat(request: QueryRequest, http_request: Request):
         include_reasoning=request.include_reasoning
     )
     return response
+  
+# User authentication and subscription routes
+
+# Register
+@app.get("/register", response_class=HTMLResponse)
+async def register_get(request: Request):
+    # Simple registration form
+    html_content = """
+<html><body>
+<h2>Register</h2>
+<form method='post'>
+  Username: <input name='username'/><br/>
+  Email: <input type='email' name='email'/><br/>
+  Password: <input type='password' name='password'/><br/>
+  <button type='submit'>Register</button>
+</form>
+</body></html>
+"""
+    return HTMLResponse(html_content)
+
+@app.post("/register")
+async def register_post(request: Request, username: str = Form(...), email: str = Form(...), password: str = Form(...)):
+    existing_user = await get_user_by_email(email)
+    if existing_user:
+        return HTMLResponse("Email already registered", status_code=400)
+    hashed_password = get_password_hash(password)
+    await database.execute(users.insert().values(username=username, email=email, hashed_password=hashed_password))
+    return RedirectResponse(url="/login", status_code=302)
+
+# Login
+@app.get("/login", response_class=HTMLResponse)
+async def login_get(request: Request):
+    # Simple login form
+    html_content = """
+<html><body>
+<h2>Login</h2>
+<form method='post'>
+  Email: <input type='email' name='email'/><br/>
+  Password: <input type='password' name='password'/><br/>
+  <button type='submit'>Login</button>
+</form>
+</body></html>
+"""
+    return HTMLResponse(html_content)
+
+@app.post("/login")
+async def login_post(request: Request, email: str = Form(...), password: str = Form(...)):
+    user = await authenticate_user(email, password)
+    if not user:
+        return HTMLResponse("Invalid credentials", status_code=401)
+    request.session["user"] = user["id"]
+    return RedirectResponse(url="/account", status_code=302)
+
+# Logout
+@app.get("/logout")
+async def logout(request: Request):
+    request.session.clear()
+    return RedirectResponse(url="/", status_code=302)
+
+# Account page
+@app.get("/account", response_class=HTMLResponse)
+async def account_page(request: Request, current_user=Depends(get_current_user)):
+    # Display account and subscription status
+    subscribed = current_user.get("subscription_status") == "active"
+    html = "<html><body>"
+    html += f"<h2>Account for {current_user.get('username')}</h2>"
+    html += f"<p>Email: {current_user.get('email')}</p>"
+    html += "<h3>Subscription</h3>"
+    if subscribed:
+        html += "<p>Subscribed: $10/month (Active)</p>"
+    else:
+        if HAS_STRIPE:
+            html += "<p>Monthly subscription: $10</p>"
+            html += "<form method='post' action='/create-checkout-session'><button type='submit'>Subscribe</button></form>"
+        else:
+            html += "<p>Subscription feature is not yet configured.</p>"
+    html += "<p><a href='/logout'>Logout</a> | <a href='/'>Home</a></p>"
+    html += "</body></html>"
+    return HTMLResponse(html)
+
+# Create Stripe checkout session
+@app.post("/create-checkout-session")
+async def create_checkout_session(request: Request, current_user=Depends(get_current_user)):
+    # Ensure Stripe integration is available
+    if not HAS_STRIPE:
+        raise HTTPException(status_code=503, detail="Stripe subscription is not configured")
+    user = await get_user_by_id(current_user["id"])
+    # Create Stripe customer if not exists
+    if not user["stripe_customer_id"]:
+        customer = stripe.Customer.create(email=user["email"])
+        update_query = users.update().where(users.c.id == user["id"]).values(stripe_customer_id=customer["id"])
+        await database.execute(update_query)
+        stripe_customer_id = customer["id"]
+    else:
+        stripe_customer_id = user["stripe_customer_id"]
+    try:
+        session = stripe.checkout.Session.create(
+            customer=stripe_customer_id,
+            payment_method_types=["card"],
+            line_items=[{"price": PRICE_ID, "quantity": 1}],
+            mode="subscription",
+            success_url=DOMAIN + "/subscription_success?session_id={CHECKOUT_SESSION_ID}",
+            cancel_url=DOMAIN + "/account",
+        )
+        return RedirectResponse(session.url, status_code=303)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+# Subscription success
+@app.get("/subscription_success", response_class=HTMLResponse)
+async def subscription_success(request: Request, session_id: str, current_user=Depends(get_current_user)):
+    # Ensure Stripe integration is available
+    if not HAS_STRIPE:
+        raise HTTPException(status_code=503, detail="Stripe subscription is not configured")
+    stripe_session = stripe.checkout.Session.retrieve(session_id)
+    subscription_id = stripe_session.get("subscription")
+    # Update subscription status
+    await database.execute(users.update().where(users.c.id == current_user["id"]).values(
+        stripe_subscription_id=subscription_id,
+        subscription_status="active"
+    ))
+    html = "<html><body>"
+    html += f"<h2>Subscription Successful!</h2><p>Thank you, {current_user.get('username')}.</p>"
+    html += "<p>Your subscription is active. $10/month.</p>"
+    html += "<p><a href='/account'>Go to Account</a> | <a href='/'>Home</a></p>"
+    html += "</body></html>"
+    return HTMLResponse(html)

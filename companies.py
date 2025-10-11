@@ -5,7 +5,7 @@ from target_tickers import TARGET_TICKERS
 
 # --- Configuration ---
 # You must set a User-Agent header for SEC requests
-SEC_USER_AGENT = os.getenv("SEC_USER_AGENT", "Your Name your.email@provider.com")
+SEC_USER_AGENT = os.getenv("SEC_USER_AGENT", "yinglu1985.shanghai@gmail.com")
 OUTPUT_CSV_PATH = "data/companies.csv"
 
 # NOTE: This file is deprecated. Use fetch_data.py instead which handles

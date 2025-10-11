@@ -251,11 +251,11 @@ gcloud artifacts repositories create financial-assistant-repo \
 gcloud builds submit --tag us-central1-docker.pkg.dev/YOUR-PROJECT/financial-assistant-repo/assistant-service:latest
 
 gcloud run deploy financial-assistant-service \
-    --image=us-central1-docker.pkg.dev/YOUR-PROJECT/financial-assistant-repo/assistant-service:latest \
+    --image=us-central1-docker.pkg.dev/financial-agent-474022/financial-assistant-repo/assistant-service:latest \
     --platform=managed \
     --region=us-central1 \
     --allow-unauthenticated \
-    --set-env-vars-from-file=.env \
+    --env-vars-file=.env \ 
     --min-instances 0 \
     --max-instances 3 \
     --cpu 4 \
